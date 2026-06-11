@@ -1,8 +1,19 @@
 # Team Workflow
 
-This document explains how Team 7 organizes communication, task tracking, decisions, documentation, and GitHub workflow during the Final Project.
+This document explains how AREA-42 (formerly Team 7) organizes communication, task tracking, decisions, documentation, and GitHub workflow during the Final Project.
 
 The goal is to make the project process clear for all team members and understandable for the teacher.
+
+---
+
+## 0. Team Management Strategy
+
+AREA-42 uses **Lightweight Scrumban with DRI Ownership**.
+
+* **Scrumban** — a mix of Scrum and Kanban. We keep a short daily standup (Scrum rhythm) and a simple board with task columns and flow (Kanban). There are no heavy sprints; tasks move continuously across the board.
+* **DRI (Directly Responsible Individual)** — every task has exactly one person who is directly responsible for it. The DRI may ask others for help, but they own the task's progress, blockers, and deliverable.
+* **WIP limit** — Work In Progress is kept low. Each member should keep only a small number of tasks `In Progress` at once so work actually gets finished instead of piling up.
+* **Done means deliverable exists** — a task is only `Done` when its deliverable actually exists and is visible in GitHub (a file, a PR, a board update, etc.). "Almost done" or "discussed" is not `Done`.
 
 ---
 
