@@ -1,6 +1,6 @@
-# Team 7 Final Project Plan
+# AREA-42 Final Project Plan
 
-This file is the dynamic project plan for Team 7.
+This file is the dynamic project plan for AREA-42 (formerly Team 7).
 It tracks the current project status, team decisions, tasks, owners, deadlines, blockers, and next steps.
 
 ---
@@ -16,15 +16,36 @@ It tracks the current project status, team decisions, tasks, owners, deadlines, 
 
 ### Current Status
 
-| Item                        | Status                    |
-| --------------------------- | ------------------------- |
-| Team name                   | TBD                       |
-| Final project idea          | TBD                       |
-| Daily meeting time          | 21:00 ± 1 hour            |
-| GitHub repository           | Created                   |
-| GitHub Project board        | To be created             |
-| Team roles                  | Temporary roles discussed |
-| Project management strategy | In progress               |
+| Item                        | Status                                  |
+| --------------------------- | --------------------------------------- |
+| Team name                   | AREA-42                                 |
+| Final project idea          | TBD                                     |
+| Daily meeting time          | 21:00 ± 1 hour                          |
+| GitHub repository           | Created                                 |
+| GitHub Project board        | Created (link TBD)                      |
+| Team roles                  | Temporary roles discussed               |
+| Project management strategy | Lightweight Scrumban with DRI Ownership |
+
+### Current Setup Status
+
+The project management environment is ready. Only the final project idea and dataset remain to be selected.
+
+* Done: GitHub repository, README, .gitignore, MIT License
+* Done: Plan.md, docs/TEAM_WORKFLOW.md, docs/DECISIONS.md, docs/MEETING_LOG.md
+* Done: Official team name (AREA-42) and management strategy (Lightweight Scrumban with DRI Ownership)
+* Done: GitHub Project board created (link TBD)
+* Pending: Final project idea (TBD), dataset (TBD)
+
+### External Resources & Links
+
+| Resource              | Status / Link |
+| --------------------- | ------------- |
+| GitHub Project Board  | TBD           |
+| Discord important links | TBD         |
+| Dataset folder/source | TBD           |
+| Presentation          | TBD           |
+| Final report          | TBD           |
+| Demo video            | TBD           |
 
 ---
 
@@ -82,16 +103,19 @@ For each technical or documentation task:
 | Task                           | Owner          | Status      | Deadline    | Deliverable                      | Notes                                            |
 | ------------------------------ | -------------- | ----------- | ----------- | -------------------------------- | ------------------------------------------------ |
 | Explain teacher guidelines     | Elvin          | Done        | 2026-06-08  | Guidelines explained to the team | Completed during initial meeting                 |
-| Decide temporary roles         | Team 7         | Done        | 2026-06-08  | Temporary roles discussed        | Roles may change after idea selection            |
-| Agree on daily meeting time    | Team 7         | Done        | 2026-06-08  | Daily meeting time selected      | 21:00 ± 1 hour                                   |
-| Assign initial tasks           | Elvin / Team 7 | Done        | 2026-06-08  | First tasks assigned             | Initial coordination completed                   |
+| Decide temporary roles         | AREA-42        | Done        | 2026-06-08  | Temporary roles discussed        | Roles may change after idea selection            |
+| Agree on daily meeting time    | AREA-42        | Done        | 2026-06-08  | Daily meeting time selected      | 21:00 ± 1 hour                                   |
+| Assign initial tasks           | Elvin / AREA-42 | Done       | 2026-06-08  | First tasks assigned             | Initial coordination completed                   |
 | Discuss possible project ideas | All members    | In Progress | TBD         | 1–2 project ideas per member     | Each idea should include possible data source    |
 | Check dataset availability     | All members    | In Progress | TBD         | Dataset links and quality notes  | Final idea should not be locked before this      |
 | Create GitHub repository       | Elvin          | Done        | 2026-06-09  | Repository created               | README, Python .gitignore, and MIT License added |
-| Create Plan.md                 | Elvin          | In Progress | 2026-06-09  | Dynamic project plan             | This file will be updated regularly              |
-| Create GitHub Project board    | TBD            | Todo        | TBD         | Task board                       | To be created after Plan.md                      |
-| Finalize team name             | Team 7         | Todo        | End of week | Final team name                  | To be discussed                                  |
-| Finalize project idea          | Team 7         | Todo        | End of week | Selected project idea            | Only after dataset validation                    |
+| Create Plan.md                 | Elvin          | Done        | 2026-06-09  | Dynamic project plan             | This file will be updated regularly              |
+| Create team workflow documentation | Elvin      | Done        | 2026-06-09  | docs/TEAM_WORKFLOW.md            | Workflow and management strategy documented      |
+| Create decisions log           | Elvin          | Done        | 2026-06-09  | docs/DECISIONS.md                | Official decisions recorded                      |
+| Create meeting log             | Elvin          | Done        | 2026-06-09  | docs/MEETING_LOG.md              | Meeting summaries recorded                       |
+| Create GitHub Project board    | AREA-42        | Done        | 2026-06-09  | Task board                       | Board created; link to be added (TBD)            |
+| Finalize team name             | AREA-42        | Done        | 2026-06-09  | Final team name                  | Official team name: AREA-42                       |
+| Finalize project idea          | AREA-42        | Todo        | End of week | Selected project idea            | Only after dataset validation                    |
 
 ---
 
@@ -109,12 +133,11 @@ For each technical or documentation task:
 
 ## 6. Current Blockers
 
-| Blocker                                 | Owner       | Status | Needed Action                     |
-| --------------------------------------- | ----------- | ------ | --------------------------------- |
-| Final project idea is not selected yet  | Team 7      | Open   | Research ideas and datasets       |
-| Dataset quality is not checked yet      | All members | Open   | Find and review possible datasets |
-| GitHub Project board is not created yet | TBD         | Open   | Create project board              |
-| Team name is not finalized yet          | Team 7      | Open   | Discuss and select name           |
+| Blocker                                 | Owner       | Status   | Needed Action                     |
+| --------------------------------------- | ----------- | -------- | --------------------------------- |
+| Final project idea is not selected yet  | AREA-42     | Open     | Research ideas and datasets       |
+| Dataset quality is not checked yet      | All members | Open     | Find and review possible datasets |
+| GitHub Project board link not added yet | AREA-42     | Open     | Add board link to docs (TBD)      |
 
 ---
 

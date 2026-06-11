@@ -1,6 +1,6 @@
 # Meeting Log
 
-This file records short summaries of team meetings during the Final Project.
+This file records short summaries of AREA-42 (formerly Team 7) meetings during the Final Project.
 
 Each meeting summary should include the date, participants, main topics, completed items, decisions, blockers, and next steps.
 
@@ -97,6 +97,8 @@ Next steps:
 
 ### Decisions
 
+* Official team name confirmed: AREA-42 (formerly Team 7).
+* Management strategy confirmed: Lightweight Scrumban with DRI Ownership.
 * GitHub documentation will be used as the official project management record.
 * Discord will be used for fast communication and daily coordination.
 * GitHub Project will be used as the official task board.

@@ -78,4 +78,24 @@ Owner:
 **Decision:** The repository uses the MIT License.
 **Reason:** MIT is simple, standard, and suitable for a student project.
 **Impact:** The project code has a clear open-source license. Dataset licenses must still follow the original data providers.
-**Owner:** Team 7
+**Owner:** AREA-42
+
+---
+
+### Decision 7 — Official Team Name
+
+**Date:** 2026-06-09
+**Decision:** The official team name is **AREA-42**. The previous "Team 7" name remains only as historical/class context.
+**Reason:** The team needs a single, consistent official identity across the repository, documentation, and external materials.
+**Impact:** README, Plan.md, and docs use AREA-42 as the current team name. "Team 7" is kept only where it refers to the original class/team number.
+**Owner:** AREA-42
+
+---
+
+### Decision 8 — Management Strategy
+
+**Date:** 2026-06-09
+**Decision:** The team uses **Lightweight Scrumban with DRI Ownership**.
+**Reason:** A lightweight Scrumban flow fits a small student team, and DRI ownership makes responsibility for each task unambiguous.
+**Impact:** Tasks flow across a simple board with low WIP, each task has one Directly Responsible Individual, and `Done` requires an existing deliverable. Documented in docs/TEAM_WORKFLOW.md.
+**Owner:** AREA-42
