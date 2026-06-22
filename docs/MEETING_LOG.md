@@ -116,3 +116,87 @@ Next steps:
 * Update `Plan.md`.
 * Update Discord `#important-links`.
 * Announce that the basic management environment is ready.
+
+---
+
+## 2026-06-21 — Project Idea Discussion (Internal Preference)
+
+### Participants
+
+* Roya Nasirova
+* Adil Hasanov
+* Elvin Nəsirov
+* Aysu Mammadova Anar
+
+### Main Topics
+
+* Review of candidate project ideas
+* Dataset availability for each idea
+* Feasibility and scope discussion
+* Team's internal project direction
+
+### Completed
+
+* Candidate ideas were compared on problem value, feasibility, and data availability.
+* A candidate PPE detection dataset (Roboflow, CC BY 4.0) was identified.
+* The team agreed on an internal preference (not yet teacher-approved).
+
+### Decisions
+
+* Internal team preference: **AI-Powered Workplace Safety Monitoring System** (see DECISIONS.md, Decision 9). This is a team preference, not an official approval.
+* The MVP will cover the end-to-end pipeline on a single video source.
+* The candidate PPE dataset still needs quality validation before being locked.
+
+### Blockers
+
+* Project direction not yet approved by the teacher.
+* Dataset quality is not fully validated yet.
+* Repository is not yet structured for technical work.
+
+### Next Steps
+
+* Present the direction to the teacher for approval.
+* Prepare to restructure the repository for technical work.
+* Validate the candidate dataset.
+
+---
+
+## 2026-06-22 — Teacher Approval & Repository Restructure
+
+### Participants
+
+* AREA-42
+
+### Main Topics
+
+* Teacher approval of the project direction
+* Technical repository structure
+* Project documentation updates
+* `.gitignore` rules for data, models, runs, videos, outputs, and secrets
+
+### Completed
+
+* The teacher **approved** the project direction (AI-Powered Workplace Safety Monitoring) on 2026-06-22.
+* Repository restructured into the planned technical layout (`src/` modules, `configs/`, `data/`, `models/`, `notebooks/`, `tests/`, `scripts/`, `docs/`).
+* `README.md` rewritten with problem, solution, MVP scope, architecture, structure, and placeholders.
+* `Plan.md` updated to the teacher-approved project status.
+* `.gitignore` extended for datasets, model weights/checkpoints, YOLO runs, uploaded videos, generated incident frames/clips, and local secrets.
+* Previously committed PPE dataset removed from Git tracking; it now lives locally (git-ignored) under `data/raw/ppe_detection_v1/`.
+
+### Decisions
+
+* Project direction approved by the teacher (see DECISIONS.md, Decision 10).
+* Technical repository structure approved (see DECISIONS.md, Decision 11).
+* All `src/` components are placeholders, clearly labeled as planned, not implemented.
+
+### Blockers
+
+* Candidate dataset validation still ongoing.
+* Component DRIs (owners) not assigned yet.
+
+### Next Steps
+
+* Validate the candidate PPE dataset.
+* Assign a DRI to each planned `src/` component.
+* Add the GitHub Project board link to documentation.
+* Begin MVP implementation (video input + PPE detection first).

@@ -245,10 +245,17 @@ Use clear branch names:
 docs/update-plan
 docs/add-meeting-log
 data/research-datasets
-ml/baseline-model
-frontend/create-layout
-backend/create-api
+detection/ppe-baseline
+tracking/person-tracker
+rules/persistent-violation
+incidents/capture-frames
+notifications/alerts
+api/create-endpoints
+ui/monitoring-layout
 ```
+
+Branch prefixes should match the planned components in `src/` where possible
+(for example `detection/...`, `tracking/...`, `rules/...`, `api/...`, `ui/...`).
 
 ### Commit Message Examples
 
@@ -326,6 +333,36 @@ The team workflow is:
 
 ---
 
-## 12. Maintenance
+## 12. Repository Structure
+
+Now that the project idea is approved (AI-Powered Workplace Safety Monitoring),
+the repository is organized into a planned technical layout. The `src/` modules
+are **placeholders** until implementation begins.
+
+| Path                 | Purpose                                              |
+| -------------------- | --------------------------------------------------- |
+| `src/video/`         | Video input / frame reading (planned)               |
+| `src/detection/`     | PPE & person detection (planned)                    |
+| `src/tracking/`      | Person tracking across frames (planned)             |
+| `src/rules/`         | Violation & persistent-violation logic (planned)    |
+| `src/incidents/`     | Incident capture (frames/clips + metadata) (planned) |
+| `src/notifications/` | Alerts / notifications (planned)                    |
+| `src/api/`           | Backend API (planned)                               |
+| `src/ui/`            | Monitoring UI (planned)                             |
+| `configs/`           | Configuration files (planned)                       |
+| `data/`              | Local datasets (git-ignored; see `data/README.md`)  |
+| `models/`            | Model weights/checkpoints (git-ignored; see `models/README.md`) |
+| `notebooks/`         | Exploration & experiments (planned)                 |
+| `tests/`             | Automated tests (planned)                           |
+| `scripts/`           | Helper / utility scripts (planned)                  |
+| `docs/`              | Project & team documentation                        |
+
+Datasets, model weights, videos, runtime outputs, and secrets are **not**
+committed; see [`.gitignore`](../.gitignore). A full description of the project
+lives in [`README.md`](../README.md).
+
+---
+
+## 13. Maintenance
 
 This document should be updated when the team changes its workflow, tools, or project management rules.

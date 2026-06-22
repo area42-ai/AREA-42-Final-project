@@ -216,3 +216,53 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ===========================================================================
+# AREA-42 project-specific ignores (workplace safety monitoring system)
+# ===========================================================================
+
+# --- Local environment & secrets ---
+.env
+.env.*
+!.env.example
+*.secret
+secrets/
+*.pem
+*.key
+
+# --- Datasets (never commit raw data) ---
+/data/*
+!/data/README.md
+datasets/
+*.zip
+*.tar
+*.tar.gz
+
+# --- Model weights & checkpoints ---
+/models/*
+!/models/README.md
+checkpoints/
+*.pt
+*.pth
+*.onnx
+*.engine
+*.ckpt
+*.weights
+
+# --- YOLO training / inference runs ---
+runs/
+yolov8*.pt
+yolo11*.pt
+
+# --- Uploaded videos / media inputs ---
+uploads/
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# --- Generated incident frames & clips (runtime outputs) ---
+/incidents/
+/outputs/
+src/incidents/output/
+

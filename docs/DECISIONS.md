@@ -99,3 +99,35 @@ Owner:
 **Reason:** A lightweight Scrumban flow fits a small student team, and DRI ownership makes responsibility for each task unambiguous.
 **Impact:** Tasks flow across a simple board with low WIP, each task has one Directly Responsible Individual, and `Done` requires an existing deliverable. Documented in docs/TEAM_WORKFLOW.md.
 **Owner:** AREA-42
+
+---
+
+## 2026-06-21 — Project Direction (Internal Team Preference)
+
+### Decision 9 — Internal Project Direction
+
+**Date:** 2026-06-21
+**Decision:** As an **internal team preference** (not yet teacher-approved), the team leans toward an **AI-Powered Workplace Safety Monitoring System** that analyzes video to detect PPE compliance, tracks people across frames, applies persistent-violation logic, captures incidents, and sends notifications through an API and monitoring UI.
+**Reason:** The idea has a clear real-world problem (workplace safety), a feasible AI scope (PPE detection), and at least one candidate dataset (Roboflow PPE detection, CC BY 4.0).
+**Impact:** The team prepares this direction for teacher review. No official approval is claimed on this date; the candidate dataset still needs quality validation before being locked.
+**Owner:** AREA-42
+
+---
+
+## 2026-06-22 — Teacher Approval & Repository Restructure
+
+### Decision 10 — Project Direction Approved by Teacher
+
+**Date:** 2026-06-22
+**Decision:** The teacher **approved** the selected project direction (AI-Powered Workplace Safety Monitoring) on 2026-06-22, making it the official final project.
+**Reason:** The direction was reviewed and accepted as feasible and appropriate in scope.
+**Impact:** Technical planning can begin. The architecture, MVP scope, and repository structure are documented in README.md.
+**Owner:** AREA-42
+
+### Decision 11 — Technical Repository Structure
+
+**Date:** 2026-06-22
+**Decision:** The repository is restructured into a planned technical layout: `src/` (with `video/`, `detection/`, `tracking/`, `rules/`, `incidents/`, `notifications/`, `api/`, `ui/`), plus `configs/`, `data/`, `models/`, `notebooks/`, `tests/`, `scripts/`, and `docs/`. Empty planned folders are kept with `.gitkeep`; `data/` and `models/` keep only a `README.md`.
+**Reason:** Now that the direction is teacher-approved, the team needs a clear, agreed structure so each planned component has an owner and a home before implementation starts (GitHub Issue #11).
+**Impact:** `.gitignore` was extended to exclude datasets, model weights/checkpoints, YOLO runs, uploaded videos, generated incident frames/clips, and local secrets. The previously committed PPE dataset was removed from Git tracking and now lives locally (git-ignored) under `data/raw/ppe_detection_v1/`. No datasets, weights, videos, outputs, or secrets are committed. All `src/` modules are placeholders and clearly labeled as planned, not implemented.
+**Owner:** AREA-42

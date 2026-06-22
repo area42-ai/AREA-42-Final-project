@@ -16,36 +16,42 @@ It tracks the current project status, team decisions, tasks, owners, deadlines, 
 
 ### Current Status
 
-| Item                        | Status                                  |
-| --------------------------- | --------------------------------------- |
-| Team name                   | AREA-42                                 |
-| Final project idea          | TBD                                     |
-| Daily meeting time          | 21:00 ± 1 hour                          |
-| GitHub repository           | Created                                 |
-| GitHub Project board        | Created (link TBD)                      |
-| Team roles                  | Temporary roles discussed               |
-| Project management strategy | Lightweight Scrumban with DRI Ownership |
+| Item                        | Status                                            |
+| --------------------------- | ------------------------------------------------- |
+| Team name                   | AREA-42                                           |
+| Final project idea          | AI-Powered Workplace Safety Monitoring (teacher-approved 2026-06-22) |
+| Project phase               | Technical planning (implementation not started)   |
+| Daily meeting time          | 21:00 ± 1 hour                                    |
+| GitHub repository           | Created                                           |
+| GitHub Project board        | Created (insert URL manually — see Links)         |
+| Team roles                  | Temporary roles discussed                         |
+| Project management strategy | Lightweight Scrumban with DRI Ownership           |
 
 ### Current Setup Status
 
-The project management environment is ready. Only the final project idea and dataset remain to be selected.
+The project direction was the team's internal preference, and was
+**approved by the teacher on 2026-06-22**. The repository has been restructured
+for technical work. Implementation of the pipeline has **not** started yet — the
+`src/` modules are planned placeholders.
 
 * Done: GitHub repository, README, .gitignore, MIT License
 * Done: Plan.md, docs/TEAM_WORKFLOW.md, docs/DECISIONS.md, docs/MEETING_LOG.md
 * Done: Official team name (AREA-42) and management strategy (Lightweight Scrumban with DRI Ownership)
 * Done: GitHub Project board created (link TBD)
-* Pending: Final project idea (TBD), dataset (TBD)
+* Done: Project direction approved by the teacher on 2026-06-22 — AI-Powered Workplace Safety Monitoring
+* Done: Repository restructured into planned technical layout (`src/`, `configs/`, `data/`, `models/`, `notebooks/`, `tests/`, `scripts/`, `docs/`)
+* Pending: Candidate dataset validation, technical implementation
 
 ### External Resources & Links
 
-| Resource              | Status / Link |
-| --------------------- | ------------- |
-| GitHub Project Board  | TBD           |
-| Discord important links | TBD         |
-| Dataset folder/source | TBD           |
-| Presentation          | TBD           |
-| Final report          | TBD           |
-| Demo video            | TBD           |
+| Resource              | Status / Link                                                                |
+| --------------------- | --------------------------------------------------------------------------- |
+| GitHub Project Board  | `https://github.com/orgs/area42-ai/projects/1/views/1`               |
+| Discord important links | TBD                                                                       |
+| Candidate dataset     | PPE detection (Roboflow, CC BY 4.0) — under validation; see `data/README.md` |
+| Presentation          | TBD                                                                         |
+| Final report          | TBD                                                                         |
+| Demo video            | TBD                                                                         |
 
 ---
 
@@ -106,8 +112,8 @@ For each technical or documentation task:
 | Decide temporary roles         | AREA-42        | Done        | 2026-06-08  | Temporary roles discussed        | Roles may change after idea selection            |
 | Agree on daily meeting time    | AREA-42        | Done        | 2026-06-08  | Daily meeting time selected      | 21:00 ± 1 hour                                   |
 | Assign initial tasks           | Elvin / AREA-42 | Done       | 2026-06-08  | First tasks assigned             | Initial coordination completed                   |
-| Discuss possible project ideas | All members    | In Progress | TBD         | 1–2 project ideas per member     | Each idea should include possible data source    |
-| Check dataset availability     | All members    | In Progress | TBD         | Dataset links and quality notes  | Final idea should not be locked before this      |
+| Discuss possible project ideas | All members    | Done        | 2026-06-21  | 1–2 project ideas per member     | Ideas discussed; team's internal preference was safety monitoring |
+| Check dataset availability     | All members    | In Progress | TBD         | Dataset links and quality notes  | Candidate PPE dataset found; quality validation ongoing |
 | Create GitHub repository       | Elvin          | Done        | 2026-06-09  | Repository created               | README, Python .gitignore, and MIT License added |
 | Create Plan.md                 | Elvin          | Done        | 2026-06-09  | Dynamic project plan             | This file will be updated regularly              |
 | Create team workflow documentation | Elvin      | Done        | 2026-06-09  | docs/TEAM_WORKFLOW.md            | Workflow and management strategy documented      |
@@ -115,19 +121,20 @@ For each technical or documentation task:
 | Create meeting log             | Elvin          | Done        | 2026-06-09  | docs/MEETING_LOG.md              | Meeting summaries recorded                       |
 | Create GitHub Project board    | AREA-42        | Done        | 2026-06-09  | Task board                       | Board created; link to be added (TBD)            |
 | Finalize team name             | AREA-42        | Done        | 2026-06-09  | Final team name                  | Official team name: AREA-42                       |
-| Finalize project idea          | AREA-42        | Todo        | End of week | Selected project idea            | Only after dataset validation                    |
+| Finalize project idea          | AREA-42        | Done        | 2026-06-22  | Selected project idea            | Teacher approved direction on 2026-06-22 (internal preference 2026-06-21) |
+| Restructure repository         | AREA-42        | In Progress | 2026-06-22  | Technical repo layout + docs     | GitHub Issue #11                                 |
+| Validate candidate dataset     | All members    | In Progress | TBD         | Dataset quality notes            | PPE detection dataset (Roboflow, CC BY 4.0)      |
 
 ---
 
 ## 5. Current Priorities
 
-1. Complete the basic project management environment.
-2. Collect possible project ideas.
-3. Check dataset availability and quality.
-4. Create GitHub Project board.
-5. Choose final project idea after dataset validation.
-6. Finalize team name.
-7. Start technical planning after idea selection.
+1. Restructure the repository for technical work (GitHub Issue #11).
+2. Validate the candidate PPE dataset (quality, classes, licensing).
+3. Define the detailed technical plan for the MVP pipeline.
+4. Assign DRIs to each planned component (`src/` modules).
+5. Add the GitHub Project board link to the documentation.
+6. Start MVP implementation (video input + PPE detection first).
 
 ---
 
@@ -135,9 +142,9 @@ For each technical or documentation task:
 
 | Blocker                                 | Owner       | Status   | Needed Action                     |
 | --------------------------------------- | ----------- | -------- | --------------------------------- |
-| Final project idea is not selected yet  | AREA-42     | Open     | Research ideas and datasets       |
-| Dataset quality is not checked yet      | All members | Open     | Find and review possible datasets |
+| Dataset quality is not fully checked yet | All members | Open     | Validate candidate PPE dataset    |
 | GitHub Project board link not added yet | AREA-42     | Open     | Add board link to docs (TBD)      |
+| Component DRIs not assigned yet         | AREA-42     | Open     | Assign owners to `src/` modules   |
 
 ---
 
@@ -156,19 +163,37 @@ These roles are temporary and may change after the final project idea is selecte
 
 ## 8. Project Idea Tracking
 
-Use this section to track possible ideas before selecting the final project.
+This section tracked possible ideas before the final project was selected.
 
-| Idea | Suggested By | Possible Dataset | Problem | Feasibility | Status |
-| ---- | ------------ | ---------------- | ------- | ----------- | ------ |
-| TBD  | TBD          | TBD              | TBD     | TBD         | Todo   |
+| Idea                                  | Suggested By | Possible Dataset            | Problem                              | Feasibility | Status   |
+| ------------------------------------- | ------------ | --------------------------- | ------------------------------------ | ----------- | -------- |
+| AI-Powered Workplace Safety Monitoring | AREA-42      | PPE detection (Roboflow)    | Detect missing PPE / safety risks    | Feasible    | Teacher-approved (2026-06-22) |
 
 ---
 
 ## 9. Dataset Research Tracking
 
-| Dataset | Source Link | Related Idea | Size | Target Variable | Quality Notes | Status |
-| ------- | ----------- | ------------ | ---- | --------------- | ------------- | ------ |
-| TBD     | TBD         | TBD          | TBD  | TBD             | TBD           | Todo   |
+| Dataset       | Source Link                                                  | Related Idea            | Size | Target Variable          | Quality Notes                | Status      |
+| ------------- | ----------------------------------------------------------- | ----------------------- | ---- | ------------------------ | ---------------------------- | ----------- |
+| PPE detection | https://universe.roboflow.com/testcasque/ppe-detection-qlq3d | Safety Monitoring (MVP) | TBD  | PPE classes (10 classes) | CC BY 4.0; validation ongoing | In Progress |
+
+---
+
+## 9a. Planned Technical Components
+
+> All components below are **planned**, not implemented.
+
+| Component             | Planned location     | Status  | DRI |
+| --------------------- | -------------------- | ------- | --- |
+| Video input           | `src/video/`         | Planned | TBD |
+| PPE detection         | `src/detection/`     | Planned | TBD |
+| Person tracking       | `src/tracking/`      | Planned | TBD |
+| Violation rules       | `src/rules/`         | Planned | TBD |
+| Persistent violation logic | `src/rules/`    | Planned | TBD |
+| Incident capture      | `src/incidents/`     | Planned | TBD |
+| Notifications         | `src/notifications/` | Planned | TBD |
+| API                   | `src/api/`           | Planned | TBD |
+| Monitoring UI         | `src/ui/`            | Planned | TBD |
 
 ---
 
@@ -177,6 +202,8 @@ Use this section to track possible ideas before selecting the final project.
 | Date       | Main Topic                   | Key Outcome                                                                                                | Next Step                            |
 | ---------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | 2026-06-08 | Initial coordination meeting | Teacher guidelines discussed, temporary roles created, daily meeting time selected, initial tasks assigned | Create GitHub repository and Plan.md |
+| 2026-06-21 | Project idea discussion      | Team's internal preference: AI-Powered Workplace Safety Monitoring (not yet teacher-approved)              | Seek teacher approval; plan MVP      |
+| 2026-06-22 | Teacher approval & restructure | Teacher approved the project direction; repo reorganized into technical layout; README/Plan/docs updated (Issue #11) | Validate dataset and assign DRIs     |
 
 ---
 
