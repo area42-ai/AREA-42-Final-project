@@ -1,6 +1,8 @@
-# AREA-42 — AI-Powered Workplace Safety Monitoring
+# Watch Out — AI-Powered Workplace Safety Monitoring
 
-Final Project repository for **AREA-42** (formerly Team 7) — Data &amp; AI Cohort.
+![Watch Out Logo](assets/branding/watch-out-logo.png)
+
+Final Project repository for **AREA-42** (formerly Team 7) — Data & AI Cohort.
 
 > **Project status:** idea approved, technical planning in progress.
 > The components described below are **planned**, not yet implemented. This
@@ -125,6 +127,18 @@ cd AREA-42-Final-project
 # python -m src.api        # start the backend API
 # python -m src.ui         # start the monitoring UI
 ```
+
+## Brand Identity
+
+**Watch Out** is designed to act as an extra pair of vigilant eyes in the workplace, utilizing AI computer vision to monitor and ensure worker compliance with required Personal Protective Equipment (PPE). The brand identity reflects safety, vigilance, and real-time responsiveness.
+
+### Core Brand Colors
+
+| Color Role | Color Preview | HEX Value | Description |
+|---|---|---|---|
+| **Safety Orange** | `■` | `#fb7600` | The primary brand color, representing visibility, safety equipment, and active monitoring alerts. |
+| **Dark Slate** | `■` | `#1e293b` | Used for backgrounds, text, and structure, offering high contrast and readability. |
+| **White** | `■` | `#ffffff` | Clean contrast and highlight accents. |
 
 ## Team
 
