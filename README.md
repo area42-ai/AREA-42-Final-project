@@ -8,6 +8,11 @@ Final Project repository for **AREA-42** (formerly Team 7) — Data & AI Cohort.
 > The components described below are **planned**, not yet implemented. This
 > repository currently contains the project structure, documentation, and
 > placeholders for the work ahead.
+>
+> **Technical direction:** the current direction is **API-first** — the MVP uses
+> an external NVIDIA model through an API key rather than training a custom
+> model. See [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) and
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
@@ -34,13 +39,18 @@ single video source:
 
 - **In scope (MVP)**
   - Ingest a video file (or single camera stream).
-  - Detect people and PPE items (e.g. helmet / no-helmet, vest / no-vest).
-  - Track each person across frames so violations are per-person, not per-frame.
-  - Apply persistent-violation logic (a violation must last N seconds before it
-    counts, to reduce false alarms).
+  - Sample frames and send them to an **external NVIDIA model via API** for
+    inference (the specific model and API details are TBD; see
+    [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)).
+  - Interpret the response into PPE / safety violations.
+  - Apply persistent-violation logic (a violation must last a sustained period
+    before it counts, to reduce false alarms).
   - Capture an incident snapshot/clip when a confirmed violation occurs.
   - Send a basic notification for confirmed incidents.
   - Expose results through a simple API and a basic monitoring UI.
+  - Training a custom model and a full training dataset are **not** required for
+    this MVP; a small evaluation set is still used (see
+    [`docs/ASSET_POLICY.md`](docs/ASSET_POLICY.md)).
 
 - **Out of scope (for now)**
   - Multi-camera scaling and load balancing.
@@ -50,10 +60,12 @@ single video source:
 
 ## High-Level Architecture
 
-> All stages below are **planned**.
+> All stages below are **planned** and **API-first**. The full proposed pipeline,
+> dependency boundary, and failure/privacy considerations are documented in
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ```text
-Video Input  ─►  PPE Detection  ─►  Person Tracking  ─►  Violation Rules
+Video Input  ─►  Frame Sampling  ─►  NVIDIA Model API  ─►  Violation Rules
                                                               │
                                                               ▼
                                   Incident Capture  ◄──  Persistent Violation Logic
@@ -68,8 +80,8 @@ Video Input  ─►  PPE Detection  ─►  Person Tracking  ─►  Violation R
 | Stage                 | Responsibility                                                    | Planned location      |
 | --------------------- | ---------------------------------------------------------------- | --------------------- |
 | Video input           | Read frames from files / streams                                 | `src/video/`          |
-| PPE detection         | Detect people and PPE items per frame                            | `src/detection/`      |
-| Person tracking       | Assign stable IDs to people across frames                        | `src/tracking/`       |
+| Detection (API)       | Sample/preprocess frames, call the external NVIDIA model API, normalize the response | `src/detection/`      |
+| Person tracking       | Assign stable IDs to people across frames (proposed)             | `src/tracking/`       |
 | Violation rules       | Decide what counts as a violation and when it is "persistent"    | `src/rules/`          |
 | Incident capture      | Save frames/clips and incident metadata                         | `src/incidents/`      |
 | Notifications         | Alert responsible people about confirmed incidents              | `src/notifications/`  |
@@ -150,9 +162,14 @@ cd AREA-42-Final-project
 ## Project Documentation
 
 - [Plan.md](Plan.md) — dynamic roadmap, tasks, owners, blockers
+- [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md) — product, scope, confirmed/proposed/TBD
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — proposed API-first pipeline
+- [docs/ASSET_POLICY.md](docs/ASSET_POLICY.md) — what may and may not be committed
+- [docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md) — how AI tools and humans collaborate
 - [docs/TEAM_WORKFLOW.md](docs/TEAM_WORKFLOW.md) — workflow and management strategy
 - [docs/DECISIONS.md](docs/DECISIONS.md) — official decisions log
 - [docs/MEETING_LOG.md](docs/MEETING_LOG.md) — meeting summaries
+- [AGENTS.md](AGENTS.md) — instructions for AI coding agents
 
 ## Links
 

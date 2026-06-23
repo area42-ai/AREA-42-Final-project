@@ -131,3 +131,35 @@ Owner:
 **Reason:** Now that the direction is teacher-approved, the team needs a clear, agreed structure so each planned component has an owner and a home before implementation starts (GitHub Issue #11).
 **Impact:** `.gitignore` was extended to exclude datasets, model weights/checkpoints, YOLO runs, uploaded videos, generated incident frames/clips, and local secrets. The previously committed PPE dataset was removed from Git tracking and now lives locally (git-ignored) under `data/raw/ppe_detection_v1/`. No datasets, weights, videos, outputs, or secrets are committed. All `src/` modules are placeholders and clearly labeled as planned, not implemented.
 **Owner:** AREA-42
+
+---
+
+## 2026-06-23 — Product Identity, MVP Model Strategy & AI-Assisted Delivery
+
+### Decision 12 — Product Identity
+
+**Date:** 2026-06-23
+**Decision:** The official product name is **Watch Out**. **AREA-42** remains the team identity. The final logo is being completed separately under GitHub Issue #15.
+**Reason:** The team needs a single official product name for the repository, documentation, and external materials, kept distinct from the team identity. The logo is still in progress and should not be invented or treated as final.
+**Impact:** README, Plan.md, and the project-context documents use **Watch Out** as the product name and **AREA-42** as the team. The logo is not added until it is finalized under Issue #15.
+**Owner:** AREA-42
+
+---
+
+### Decision 13 — MVP Model Strategy (API-first)
+
+**Date:** 2026-06-23
+**Decision:** The current primary MVP direction is **API-first**. The team plans to integrate an **external NVIDIA model through an API key**. Training a custom model is **not** a mandatory dependency for the current MVP. The exact NVIDIA model, endpoint, supported classes, limits, pricing, and integration details remain **TBD** until verified. A **small evaluation set is still required**, and evaluation videos and other large test assets must remain **outside Git**.
+**Reason:** Using a hosted model via API lets the team reach an end-to-end MVP faster than training a custom model, while keeping unverified technical details honestly marked as TBD. A small evaluation set is still needed to sanity-check behavior and support demos.
+**Impact:** `README.md`, `Plan.md`, `docs/PROJECT_CONTEXT.md`, and `docs/ARCHITECTURE.md` reflect the API-first direction. A full training dataset is not a required dependency; the candidate PPE dataset becomes an optional reference / possible evaluation set. Evaluation and demo media are stored outside Git (see `docs/ASSET_POLICY.md`).
+**Owner:** AREA-42
+
+---
+
+### Decision 14 — AI-Assisted Delivery Workflow
+
+**Date:** 2026-06-23
+**Decision:** The team adopts a mandatory AI-assisted delivery workflow. GitHub Issues define the task contract. **Gemini** acts as task coordinator and reviewer. **Antigravity or Cursor** acts as repository implementer. Gemini reviews implementation evidence and returns **`READY FOR COMMIT`** or **`NOT READY`**. The **human** executes Git operations and approves the final result. GitHub Pull Requests remain the review and merge boundary.
+**Reason:** A clear contract and review gate keep AI-assisted work honest, scoped, and reviewable, and ensure that commits, pushes, merges, and approvals stay human-controlled.
+**Impact:** The workflow is documented in `docs/AI_WORKFLOW.md`, `AGENTS.md`, `GEMINI.md`, and `.agents/rules/area42.md`. AI agents implement and report evidence but never run Git; the human commits, pushes, and merges only after review (GitHub Issue #16).
+**Owner:** AREA-42

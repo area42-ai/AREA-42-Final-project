@@ -266,3 +266,15 @@ uploads/
 /outputs/
 src/incidents/output/
 
+# --- Demo & test media (kept outside Git; share via approved external storage) ---
+#   data/raw/ and data/test/ are already covered by /data/* above;
+#   models/weights/ is already covered by /models/* above.
+assets/demo/
+
+# --- Caches & temporary files ---
+*.tmp
+*.temp
+*.bak
+.DS_Store
+Thumbs.db
+

@@ -19,7 +19,9 @@ It tracks the current project status, team decisions, tasks, owners, deadlines, 
 | Item                        | Status                                            |
 | --------------------------- | ------------------------------------------------- |
 | Team name                   | AREA-42                                           |
+| Product name                | Watch Out                                         |
 | Final project idea          | AI-Powered Workplace Safety Monitoring (teacher-approved 2026-06-22) |
+| Technical direction         | API-first (external NVIDIA model via API key; model/API details TBD) |
 | Project phase               | Technical planning (implementation not started)   |
 | Daily meeting time          | 21:00 ± 1 hour                                    |
 | GitHub repository           | Created                                           |
@@ -40,7 +42,9 @@ for technical work. Implementation of the pipeline has **not** started yet — t
 * Done: GitHub Project board created (link TBD)
 * Done: Project direction approved by the teacher on 2026-06-22 — AI-Powered Workplace Safety Monitoring
 * Done: Repository restructured into planned technical layout (`src/`, `configs/`, `data/`, `models/`, `notebooks/`, `tests/`, `scripts/`, `docs/`)
-* Pending: Candidate dataset validation, technical implementation
+* Done: Shared AI-agent context and project-context docs (`AGENTS.md`, `GEMINI.md`, `docs/PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/ASSET_POLICY.md`, `docs/AI_WORKFLOW.md`)
+* Decided: API-first direction — use an external NVIDIA model via API key as the primary MVP approach (model/API details TBD). Training a custom model and a full training dataset are not required for the MVP.
+* Pending: Select the NVIDIA model and confirm API details; prepare a small evaluation set; technical implementation
 
 ### External Resources & Links
 
@@ -48,7 +52,8 @@ for technical work. Implementation of the pipeline has **not** started yet — t
 | --------------------- | --------------------------------------------------------------------------- |
 | GitHub Project Board  | `https://github.com/orgs/area42-ai/projects/1/views/1`               |
 | Discord important links | TBD                                                                       |
-| Candidate dataset     | PPE detection (Roboflow, CC BY 4.0) — under validation; see `data/README.md` |
+| Candidate dataset     | PPE detection (Roboflow, CC BY 4.0) — optional reference / possible small evaluation set, not a required MVP dependency; see `data/README.md` |
+| Small evaluation set  | Required even with the API model; stored outside Git (e.g. Google Drive); see `docs/ASSET_POLICY.md` |
 | Presentation          | TBD                                                                         |
 | Final report          | TBD                                                                         |
 | Demo video            | TBD                                                                         |
@@ -130,11 +135,12 @@ For each technical or documentation task:
 ## 5. Current Priorities
 
 1. Restructure the repository for technical work (GitHub Issue #11).
-2. Validate the candidate PPE dataset (quality, classes, licensing).
-3. Define the detailed technical plan for the MVP pipeline.
-4. Assign DRIs to each planned component (`src/` modules).
-5. Add the GitHub Project board link to the documentation.
-6. Start MVP implementation (video input + PPE detection first).
+2. Select the NVIDIA model and confirm API details (endpoint, capabilities, limits — currently TBD).
+3. Prepare a small evaluation set (stored outside Git) to sanity-check the API model.
+4. Define the detailed technical plan for the API-first MVP pipeline (see `docs/ARCHITECTURE.md`).
+5. Assign DRIs to each planned component (`src/` modules).
+6. Add the GitHub Project board link to the documentation.
+7. Start MVP implementation (video input + frame sampling + NVIDIA model API first).
 
 ---
 
@@ -142,7 +148,8 @@ For each technical or documentation task:
 
 | Blocker                                 | Owner       | Status   | Needed Action                     |
 | --------------------------------------- | ----------- | -------- | --------------------------------- |
-| Dataset quality is not fully checked yet | All members | Open     | Validate candidate PPE dataset    |
+| NVIDIA model + API details not selected/confirmed | AREA-42 | Open | Choose model; confirm endpoint, capabilities, and limits (TBD) |
+| Small evaluation set not prepared yet   | All members | Open     | Collect a small eval set; store outside Git |
 | GitHub Project board link not added yet | AREA-42     | Open     | Add board link to docs (TBD)      |
 | Component DRIs not assigned yet         | AREA-42     | Open     | Assign owners to `src/` modules   |
 
