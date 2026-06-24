@@ -1,6 +1,8 @@
-# Watch Out — AI-Powered Workplace Safety Monitoring
-
-![Watch Out Logo](assets/branding/watch-out-logo.png)
+<p align="center">
+  <img src="assets/branding/watch-out-logo.png" alt="Watch Out Logo" width="250">
+  <br>
+  <b>Watch Out</b>
+</p>
 
 Final Project repository for **AREA-42** (formerly Team 7) — Data & AI Cohort.
 
