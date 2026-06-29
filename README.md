@@ -1,4 +1,3 @@
-```markdown
 <p align="center">
   <img src="assets/branding/watch-out-logo.png" alt="Watch Out Logo" width="220">
 </p>
@@ -141,6 +140,3 @@ Dataset access: [`data/README.md`](data/README.md)
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
-```
-
