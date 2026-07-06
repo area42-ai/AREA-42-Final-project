@@ -1,263 +1,257 @@
+"""AREA-42 Watch Out: Nemotron whole-video PPE pipeline (Pipeline A, step 1).
+
+Sends the entire video to a hosted Nemotron model and returns a PLAIN-TEXT
+temporal summary (never JSON). The text summary is the only input consumed by
+the Gemma text-to-JSON converter (scripts/gemma_text_to_incident.py).
+
+The model produces observations only; notification/alert decisions belong to a
+separate deterministic rule engine.
+"""
+
+from __future__ import annotations
+
 import argparse
+import base64
 import json
-import os
-import re
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
 
 from dotenv import load_dotenv
-from google import genai
+import os
 
-load_dotenv()
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
-MODEL = "gemma-4-26b-a4b-it"
+if __package__:
+    from .incident_contract import PPE_ITEMS, parse_ppe_items
+else:  # direct-script execution
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from incident_contract import PPE_ITEMS, parse_ppe_items
 
-PROMPT = """
-You are an intelligent AI assistant monitoring workplace safety.
+load_dotenv(dotenv_path=REPO_ROOT / ".env")
 
-Analyze the uploaded video in its entirety.
+DEFAULT_NEMOTRON_MODEL = os.getenv(
+    "NVIDIA_NEMOTRON_MODEL",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+)
+DEFAULT_OUTPUT_DIR = "outputs/nemotron_test"
+SIZE_THRESHOLD_MB = 5.0
 
-Detect every time interval during which a worker is not wearing a safety helmet (hard hat).
-
-Rules:
-- Holding the helmet in hand does NOT count as wearing it.
-- A helmet lying nearby does NOT count.
-- The time during which the worker is putting the helmet on must still be counted as a violation.
-- Only stop the violation when the helmet is fully worn.
-- Analyze the entire video context.
-
-Return ONLY valid JSON.
-
-{
-  "video_duration_seconds": 0.0,
-  "incident_count": 0,
-  "incidents": [
-    {
-      "incident_id": 1,
-      "type": "missing_hard_hat",
-      "status": "resolved",
-      "start_time_seconds": 0.0,
-      "end_time_seconds": 0.0,
-      "duration_seconds": 0.0,
-      "message": ""
-    }
-  ]
+PPE_LABELS = {
+    "hard_hat": "Hard hat / helmet worn on the head",
+    "safety_vest": "High-visibility safety vest or reflective strips on the uniform",
+    "safety_glasses": "Safety glasses / protective eyewear over the eyes",
+    "gloves": "Protective gloves worn on the hands",
 }
-""".strip()
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Native video understanding with Gemma 4"
+        description=(
+            "Scan a whole video for PPE compliance using a hosted Nemotron "
+            "model and save a plain-text temporal summary."
+        )
     )
-
     parser.add_argument(
-        "--video",
-        required=True,
-        help="Path to MP4 video"
+        "video_name",
+        type=str,
+        help="Video filename inside data/test/ (e.g. video_05.mp4).",
     )
-
+    parser.add_argument(
+        "--ppe-items",
+        default=None,
+        help=(
+            "Comma-separated PPE items to check. "
+            f"Default: {','.join(PPE_ITEMS)}."
+        ),
+    )
     parser.add_argument(
         "--output-dir",
-        default="results",
-        help="Directory for results"
+        default=DEFAULT_OUTPUT_DIR,
+        help=f"Directory for the summary JSON. Default: {DEFAULT_OUTPUT_DIR}.",
     )
-
     return parser.parse_args()
 
 
-def extract_json(text: str) -> dict[str, Any]:
-    cleaned = text.strip()
+def build_prompt(ppe_items: list[str]) -> str:
+    bullet_lines = "\n".join(
+        f"{position}. {PPE_LABELS[item]}"
+        for position, item in enumerate(ppe_items, start=1)
+    )
+    return f"""
+[SYSTEM DIRECTIVE: You are an automated safety-compliance observer. You watch a
+surveillance video and output a high-accuracy PLAIN-TEXT temporal summary based
+strictly on what is visible. You do not make notification or alert decisions.]
 
-    cleaned = re.sub(r"^```json\s*", "", cleaned)
-    cleaned = re.sub(r"^```\s*", "", cleaned)
-    cleaned = re.sub(r"\s*```$", "", cleaned)
+Task: Analyze the entire video timeline and, for the most clearly visible
+worker, separately assess each of the following PPE items:
+{bullet_lines}
 
-    start = cleaned.find("{")
-    end = cleaned.rfind("}")
+For every PPE item, describe across the timeline when it is:
+- clearly present (worn correctly);
+- clearly absent (not worn while the relevant body area is visible);
+- impossible to evaluate (the relevant body area is not visible).
 
-    if start == -1 or end == -1:
-        raise ValueError(
-            "The model response does not contain a JSON object."
-        )
+Reporting rules:
+- Give approximate start and end timestamps for each confirmed period of
+  absence of each item.
+- Describe every status change for each item (e.g. helmet removed, vest put on).
+- If a body area is not visible, say it is not possible to evaluate. Not being
+  able to see an item is NOT a violation.
+- Do not invent objects, people, or actions that are not visible.
+- Do not decide whether to send any notification or alert.
 
-    return json.loads(cleaned[start:end + 1])
-
-
-def wait_until_ready(client, file_obj):
-    print("Waiting for video processing...")
-
-    while True:
-        current = client.files.get(name=file_obj.name)
-
-        state = getattr(current, "state", None)
-
-        if state:
-            state_name = str(state).upper()
-
-            print(f"Current state: {state_name}")
-
-            if "ACTIVE" in state_name:
-                return current
-
-            if "FAILED" in state_name:
-                raise RuntimeError("Video processing failed.")
-
-        time.sleep(5)
+Strict formatting constraints:
+- Do NOT wrap the response in JSON.
+- Do NOT use markdown code fences.
+- Do NOT include bounding boxes, coordinates, or positional markers.
+- Output only the final plain-text temporal summary.
+""".strip()
 
 
-def remove_audio_with_ffmpeg(input_path: Path) -> Path:
-    """FFmpeg istifadə edərək audio-nu silir"""
-    # imageio_ffmpeg-in ffmpeg faylını tap
+def maybe_compress_video(video_path: Path) -> tuple[Path, bool]:
+    size_mb = video_path.stat().st_size / (1024 * 1024)
+    if size_mb <= SIZE_THRESHOLD_MB:
+        print(f"File size {size_mb:.2f} MB (within limits). Using original.")
+        return video_path, False
+
+    print(
+        f"File size {size_mb:.2f} MB (exceeds {SIZE_THRESHOLD_MB} MB). "
+        "Compressing to 4 FPS / 720p / no audio..."
+    )
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix="_optimized.mp4")
+    temp_output = Path(temp_file.name)
+    temp_file.close()
+
     try:
-        import imageio_ffmpeg
-        ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-        print(f"FFmpeg found at: {ffmpeg_path}")
-    except:
-        # Əgər imageio_ffmpeg tapılmazsa, sadəcə ffmpeg komandasını işlət
-        ffmpeg_path = "ffmpeg"
-    
-    temp_dir = Path(tempfile.gettempdir())
-    output_path = temp_dir / f"{input_path.stem}_no_audio{input_path.suffix}"
-    
-    # FFmpeg komandasını işlət
-    cmd = [
-        ffmpeg_path,
-        "-i", str(input_path),
-        "-c", "copy",
-        "-an",  # Audio-nu sil
-        "-y",   # Mövcud faylı üzərinə yaz
-        str(output_path)
-    ]
-    
-    print(f"Running: {' '.join(cmd)}")
-    
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=False
+        subprocess.run(
+            [
+                "ffmpeg", "-y", "-i", str(video_path),
+                "-vf", "fps=4,scale=1280:720",
+                "-an", "-vcodec", "libx264", "-crf", "28",
+                str(temp_output),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
         )
-        
-        if result.returncode != 0:
-            print(f"FFmpeg error: {result.stderr}")
-            # Əgər uğursuz olarsa, orijinal faylı qaytar
-            print("FFmpeg failed. Using original video.")
-            return input_path
-        
-        print(f"Audio removed successfully: {output_path}")
-        return output_path
-        
-    except Exception as e:
-        print(f"Error running FFmpeg: {e}")
-        print("Using original video.")
-        return input_path
+        reduced_mb = temp_output.stat().st_size / (1024 * 1024)
+        print(f"Compression complete. Payload reduced to {reduced_mb:.2f} MB.")
+        return temp_output, True
+    except Exception as encode_error:
+        print(f"Compression failed ({encode_error}). Falling back to original.")
+        return video_path, False
 
 
-def main():
+def main() -> None:
     args = parse_arguments()
+    ppe_items = parse_ppe_items(args.ppe_items)
 
-    video_path = Path(args.video)
+    api_key = os.getenv("NVIDIA_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "NVIDIA_API_KEY was not found. Verify your local .env file."
+        )
 
+    video_path = REPO_ROOT / "data" / "test" / args.video_name
     if not video_path.exists():
-        raise FileNotFoundError(video_path)
+        print(f"\n[ERROR]: Test video not found at: {video_path}")
+        print("Place the file inside the 'data/test/' directory.")
+        sys.exit(1)
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    api_key = os.getenv("GOOGLE_API_KEY")
+    processed_path, using_temp = maybe_compress_video(video_path)
 
-    if not api_key:
-        raise RuntimeError(
-            "GOOGLE_API_KEY environment variable not found."
-        )
+    print("Encoding payload stream...")
+    video_base64 = base64.b64encode(processed_path.read_bytes()).decode("utf-8")
+    video_data_url = f"data:video/mp4;base64,{video_base64}"
 
-    client = genai.Client(api_key=api_key)
+    if using_temp and processed_path.exists():
+        try:
+            processed_path.unlink()
+            print("Cleaned up temporary compressed asset.")
+        except Exception as clean_error:
+            print(f"Could not remove temporary file: {clean_error}")
 
-    # Audio-nu sil (FFmpeg ilə)
-    temp_video_path = remove_audio_with_ffmpeg(video_path)
-    use_temp = temp_video_path != video_path
-    
+    prompt = build_prompt(ppe_items)
+
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url="https://integrate.api.nvidia.com/v1",
+        api_key=api_key,
+        timeout=300.0,
+    )
+
+    print("Analyzing timeline via NVIDIA gateway...")
+    total_start = time.perf_counter()
+
     try:
-        print("Uploading video...")
+        api_start = time.perf_counter()
+        completion = client.chat.completions.create(
+            model=DEFAULT_NEMOTRON_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "video_url", "video_url": {"url": video_data_url}},
+                    ],
+                }
+            ],
+            temperature=0.4,
+            max_tokens=4096,
+            stream=False,
+        )
+        api_latency = time.perf_counter() - api_start
 
-        uploaded_file = client.files.upload(
-            file=str(temp_video_path)
+        content = completion.choices[0].message.content
+        reasoning = getattr(
+            completion.choices[0].message, "reasoning_content", None
         )
 
-        uploaded_file = wait_until_ready(
-            client,
-            uploaded_file
+        print("\n====================[ SAFETY LOG ]====================")
+        if content and content.strip():
+            print(content.strip())
+        else:
+            print("[Final text payload was empty.]")
+            if reasoning and reasoning.strip():
+                print("\n---[ Internal reasoning stream ]---")
+                print(reasoning.strip())
+        print("======================================================")
+
+        total_time = time.perf_counter() - total_start
+        print("\nPerformance:")
+        print(f"   - API inference latency: {api_latency:.2f}s")
+        print(f"   - Total pipeline time:   {total_time:.2f}s")
+
+        output_payload = {
+            "source_file": str(video_path),
+            "model": DEFAULT_NEMOTRON_MODEL,
+            "video": str(video_path),
+            "analysis_scope": ppe_items,
+            "metrics": {
+                "api_inference_latency_seconds": round(api_latency, 2),
+                "total_execution_time_seconds": round(total_time, 2),
+            },
+            "internal_thinking": reasoning,
+            "summary_output": content.strip() if content else None,
+        }
+
+        save_path = output_dir / f"nemotron_{video_path.stem}_summary.json"
+        save_path.write_text(
+            json.dumps(output_payload, indent=2, ensure_ascii=False),
+            encoding="utf-8",
         )
+        print(f"Analysis saved to: {save_path}")
 
-        print("Starting video analysis...")
-
-        response = client.models.generate_content(
-            model=MODEL,
-            contents=[
-                uploaded_file,
-                PROMPT
-            ]
-        )
-
-        text = response.text
-
-        try:
-            result = json.loads(text)
-        except json.JSONDecodeError:
-            result = extract_json(text)
-
-        output_file = (
-            output_dir /
-            f"{video_path.stem}_analysis.json"
-        )
-
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(
-                result,
-                f,
-                indent=2,
-                ensure_ascii=False
-            )
-
-        print("\nAnalysis completed.")
-        print(f"Saved: {output_file}")
-
-        # Nəticəni ekranda göstər
-        print("\nResults:")
-        print(f"Video duration: {result.get('video_duration_seconds', 0)} seconds")
-        print(f"Incident count: {result.get('incident_count', 0)}")
-        for incident in result.get("incidents", []):
-            print(f"  - Incident {incident.get('incident_id')}: {incident.get('start_time_seconds')}s - {incident.get('end_time_seconds')}s")
-
-    except Exception as e:
-        print(f"\nError occurred: {e}")
-        if hasattr(e, 'response'):
-            print(f"Response: {e.response}")
+    except Exception as error:
+        print(f"\n[PIPELINE FAILURE]: {error}")
         raise
-
-    finally:
-        # Müvəqqəti faylı sil
-        if use_temp and temp_video_path.exists():
-            try:
-                print(f"\nDeleting temporary file: {temp_video_path}")
-                temp_video_path.unlink()
-                print("Temporary file deleted.")
-            except Exception as e:
-                print(f"Delete warning: {e}")
-
-        # Upload edilmiş faylı sil
-        try:
-            print("Deleting uploaded video...")
-            client.files.delete(name=uploaded_file.name)
-            print("Uploaded file deleted.")
-        except Exception as e:
-            print(f"Delete warning: {e}")
 
 
 if __name__ == "__main__":
