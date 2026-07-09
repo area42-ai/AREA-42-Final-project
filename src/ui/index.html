@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Out — Safety Monitoring System</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tabler Icons (clean and modern) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <img src="assets/branding/watch-out-logo.svg" alt="Watch Out Logo" class="logo-img">
+                <div class="logo-text">
+                    <h1>WATCH OUT</h1>
+                    <span class="logo-subtitle">Workplace Safety AI</span>
+                </div>
+            </div>
+            
+            <div class="header-stats">
+                <div class="stat-badge">
+                    <span class="stat-dot pulse-green"></span>
+                    <span class="stat-label">System:</span>
+                    <span class="stat-value text-green">Monitoring</span>
+                </div>
+                <div class="stat-badge">
+                    <i class="ti ti-activity-heartbeat"></i>
+                    <span class="stat-label">Inference:</span>
+                    <span class="stat-value" id="stat-latency">-- ms</span>
+                </div>
+                <div class="stat-badge">
+                    <i class="ti ti-alert-triangle"></i>
+                    <span class="stat-label">Violations today:</span>
+                    <span class="stat-value text-orange" id="stat-violations">0</span>
+                </div>
+                <div class="stat-badge">
+                    <i class="ti ti-checks"></i>
+                    <span class="stat-label">Compliance Rate:</span>
+                    <span class="stat-value text-green" id="stat-compliance">100%</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Content -->
+        <main class="dashboard-grid">
+            
+            <!-- Left Side: Live Feed & Video Upload -->
+            <div class="left-column">
+                
+                <!-- Camera Stream Card -->
+                <div class="dashboard-card camera-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="ti ti-video"></i>
+                            <h2>Live Safety Stream</h2>
+                        </div>
+                        <span class="status-indicator offline" id="camera-status-text">Camera Offline</span>
+                    </div>
+                    
+                    <div class="viewport-container" id="camera-viewport-container">
+                        <!-- Webcam Feed -->
+                        <video id="webcam" autoplay playsinline muted></video>
+                        <!-- Canvas overlay for bounding boxes -->
+                        <canvas id="camera-overlay"></canvas>
+                        
+                        <!-- Floating Fullscreen Toggle Button -->
+                        <button class="btn-viewport-fullscreen" id="btn-viewport-fullscreen" style="display: none;" title="Toggle Full Screen">
+                            <i class="ti ti-maximize"></i>
+                        </button>
+                        
+                        <!-- Offline overlay visual -->
+                        <div class="viewport-placeholder" id="camera-placeholder">
+                            <i class="ti ti-camera-off"></i>
+                            <p>Camera is currently disconnected</p>
+                            <button class="btn btn-primary" id="btn-start-camera">
+                                <i class="ti ti-camera"></i> Connect Camera Feed
+                            </button>
+                        </div>
+                        
+                        <!-- Alarm Overlay banner -->
+                        <div class="alarm-banner" id="safety-alarm-banner">
+                            <i class="ti ti-alert-octagon"></i>
+                            <span>SAFETY VIOLATION: MISSING HARD HAT DETECTED</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card-controls">
+                        <div class="control-buttons">
+                            <button class="btn btn-secondary" id="btn-stop-camera" disabled>
+                                <i class="ti ti-player-stop"></i> Disconnect
+                            </button>
+                            <button class="btn btn-secondary" id="btn-fullscreen-camera" disabled title="Toggle Full Screen">
+                                <i class="ti ti-maximize"></i> Full Screen
+                            </button>
+                        </div>
+                        
+                        <!-- Live Simulation Control Board -->
+                        <div class="simulator-controls" id="camera-simulator-controls" style="display: none;">
+                            <span class="sim-label"><i class="ti ti-settings-automation"></i> Simulation Tools:</span>
+                            <div class="sim-btn-group">
+                                <button class="btn btn-sim-compliant active" id="btn-sim-compliant">
+                                    <i class="ti ti-circle-check"></i> Compliant State
+                                </button>
+                                <button class="btn btn-sim-violation" id="btn-sim-violation">
+                                    <i class="ti ti-circle-x"></i> PPE Violation
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Upload Card -->
+                <div class="dashboard-card upload-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="ti ti-upload"></i>
+                            <h2>Upload & Run Pipeline</h2>
+                        </div>
+                        <span class="status-indicator offline" id="upload-status-text">No File Loaded</span>
+                    </div>
+
+                    <div class="viewport-container" id="upload-viewport-container">
+                        <!-- Uploaded Video Player -->
+                        <video id="uploaded-video" playsinline muted controls></video>
+                        <canvas id="upload-overlay"></canvas>
+
+                        <!-- Drag and Drop Placeholder -->
+                        <div class="viewport-placeholder" id="drop-zone">
+                            <i class="ti ti-cloud-upload"></i>
+                            <p>Drag and drop a video file here, or click to browse</p>
+                            <span class="file-limits">Supported formats: MP4, WebM (Max 50MB)</span>
+                            <input type="file" id="file-input" accept="video/mp4, video/webm" style="display: none;">
+                            <button class="btn btn-secondary mt-10">
+                                <i class="ti ti-file-search"></i> Select Video File
+                            </button>
+                        </div>
+                        
+                        <!-- Analysis Progress Indicator -->
+                        <div class="analysis-progress-overlay" id="analysis-progress-overlay">
+                            <div class="progress-box">
+                                <i class="ti ti-loader-quarter spin text-orange"></i>
+                                <span class="progress-title">Running AI Inference Pipeline</span>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                                </div>
+                                <span class="progress-step-text" id="progress-step-text">Extracting frames...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-controls">
+                        <div class="upload-controls-row">
+                            <div class="file-info" id="file-info-bar" style="display: none;">
+                                <i class="ti ti-movie"></i>
+                                <span class="file-name" id="selected-file-name">video.mp4</span>
+                                <span class="file-size" id="selected-file-size">0.0 MB</span>
+                                <button class="btn-clear" id="btn-clear-upload"><i class="ti ti-x"></i></button>
+                            </div>
+                            <button class="btn btn-primary" id="btn-run-analysis" disabled>
+                                <i class="ti ti-cpu"></i> Run AI Analysis
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Right Side: Incident Logs & Configuration -->
+            <div class="right-column">
+                
+                <!-- Incident Logs Card -->
+                <div class="dashboard-card logs-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="ti ti-list-details"></i>
+                            <h2>Real-time Incident Feed</h2>
+                        </div>
+                        <span class="badge" id="logs-counter">0 events</span>
+                    </div>
+                    
+                    <div class="incident-feed-container">
+                        <!-- Feed list -->
+                        <div class="incident-list" id="incident-list">
+                            <!-- Empty State -->
+                            <div class="empty-state" id="logs-empty-state">
+                                <i class="ti ti-notes-off"></i>
+                                <p>No incidents recorded in the current session.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API & Safety Rules Config Card -->
+                <div class="dashboard-card settings-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="ti ti-settings"></i>
+                            <h2>System Settings (API-First Config)</h2>
+                        </div>
+                        <button class="btn btn-text-icon" id="btn-reset-settings" title="Reset to defaults">
+                            <i class="ti ti-rotate"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label for="setting-api-url">
+                                <span class="label-text">NVIDIA API Endpoint</span>
+                                <i class="ti ti-help-circle" title="The URL used for inference calls."></i>
+                            </label>
+                            <input type="text" id="setting-api-url" placeholder="https://integrate.api.nvidia.com/v1/chat/completions">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="setting-model">
+                                    <span class="label-text">NVIDIA Vision Model</span>
+                                    <i class="ti ti-help-circle" title="Model specification identifier."></i>
+                                </label>
+                                <select id="setting-model">
+                                    <option value="meta/llama-3.2-11b-vision-instruct">meta/llama-3.2-11b-vision-instruct</option>
+                                    <option value="google/gemma-4-26b-it">google/gemma-4-26b-it (Proposed)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="setting-api-key">
+                                    <span class="label-text">API Secret Key</span>
+                                    <i class="ti ti-help-circle" title="Stored locally in localStorage."></i>
+                                </label>
+                                <input type="password" id="setting-api-key" placeholder="••••••••••••••••">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="setting-interval">
+                                    <span class="label-text">Frame Sample Interval</span>
+                                    <i class="ti ti-help-circle" title="Seconds between sampled frames for analysis."></i>
+                                </label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="setting-interval" min="0.1" max="10" step="0.1" value="1.0">
+                                    <span class="unit">sec</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="setting-threshold">
+                                    <span class="label-text">Persistent Duration</span>
+                                    <i class="ti ti-help-circle" title="Number of consecutive frames/seconds required to log a violation (reduces false alarms)."></i>
+                                </label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="setting-threshold" min="1" max="10" step="1" value="2">
+                                    <span class="unit">frames</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group row-checkbox">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="setting-audio-alerts" checked>
+                                <span class="checkmark"></span>
+                                <span class="checkbox-label">Sound alerts on safety violation</span>
+                            </label>
+                        </div>
+                        
+                        <button class="btn btn-primary w-full" id="btn-save-settings">
+                            <i class="ti ti-device-floppy"></i> Save System Configuration
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+            
+        </main>
+        
+        <!-- Evidence Viewer Modal (Modal) -->
+        <div class="modal" id="evidence-modal">
+            <div class="modal-backdrop" id="modal-close-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="ti ti-photo-check text-orange"></i> Safety Violation Evidence</h3>
+                    <button class="btn-close" id="btn-close-modal"><i class="ti ti-x"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="evidence-image-container">
+                        <img id="evidence-modal-image" src="" alt="Violation Evidence Snapshot">
+                        <canvas id="evidence-modal-overlay"></canvas>
+                    </div>
+                    <div class="evidence-meta">
+                        <div class="meta-row">
+                            <span class="meta-label">Incident ID:</span>
+                            <span class="meta-value" id="evidence-meta-id">#001</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">Timestamp:</span>
+                            <span class="meta-value" id="evidence-meta-time">2026-07-09 10:12:05</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">Violation Code:</span>
+                            <span class="meta-value text-orange" id="evidence-meta-type">missing_hard_hat</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">Factual Description:</span>
+                            <span class="meta-value" id="evidence-meta-desc">Worker entered site Zone B without hard hat safety helmet. Compliance check failed.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Alert sound element -->
+    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav" preload="auto"></audio>
+
+    <script src="app.js"></script>
+</body>
+</html>
