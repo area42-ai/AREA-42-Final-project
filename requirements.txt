@@ -1,3 +1,6 @@
 ﻿opencv-python
 python-dotenv
 requests
+openai
+google-genai
+imageio-ffmpeg
