@@ -66,12 +66,19 @@ Rules:
   possible, set minimum_confirmed_duration_seconds to the last confirmed second
   of absence minus the start.
 - Do not compute duration yourself. Do not decide notifications.
+- Each incident must include a "worker" field: a short identifying description
+  of that specific worker, copied from how they are described in the summary
+  (e.g. "yellow vest, brown pants"). Use the EXACT SAME wording for the same
+  worker across all of their incidents, so incidents belonging to one person
+  can be grouped later. If only one worker is described, still include this
+  field with their description.
 
 Return exactly this JSON structure and nothing else:
 {{
   "summary": "short factual summary",
   "incidents": [
     {{
+      "worker": "yellow vest, brown pants",
       "ppe_item": "hard_hat",
       "status": "missing",
       "start_seconds": 13.0,

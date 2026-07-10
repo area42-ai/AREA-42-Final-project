@@ -88,8 +88,11 @@ def build_prompt(ppe_items: list[str]) -> str:
 surveillance video and output a high-accuracy PLAIN-TEXT temporal summary based
 strictly on what is visible. You do not make notification or alert decisions.]
 
-Task: Analyze the entire video timeline and, for the most clearly visible
-worker, separately assess each of the following PPE items:
+Task: Analyze the entire video timeline. Identify every distinct worker who
+appears on screen (there is often more than one). For EACH worker separately,
+give a short identifying description (e.g. clothing color, role) and their
+approximate on-screen time range, then assess each of the following PPE items
+for that worker:
 {bullet_lines}
 
 For every PPE item, describe across the timeline when it is:
@@ -99,8 +102,9 @@ For every PPE item, describe across the timeline when it is:
 
 Reporting rules:
 - Give approximate start and end timestamps for each confirmed period of
-  absence of each item.
-- Describe every status change for each item (e.g. helmet removed, vest put on).
+  absence of each item, for each worker.
+- Describe every status change for each item for each worker (e.g. helmet
+  removed, vest put on).
 - If a body area is not visible, say it is not possible to evaluate. Not being
   able to see an item is NOT a violation.
 - Do not invent objects, people, or actions that are not visible.

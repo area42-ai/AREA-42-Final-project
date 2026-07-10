@@ -305,6 +305,13 @@ def normalized_incidents_from_model(
                 f"incident #{position}: action_sequence not a list; reset."
             )
 
+        worker_label = raw.get("worker")
+        worker_label = (
+            worker_label.strip()
+            if isinstance(worker_label, str) and worker_label.strip()
+            else None
+        )
+
         index += 1
         incidents.append(
             build_incident(
@@ -317,6 +324,7 @@ def normalized_incidents_from_model(
                 confidence=coerce_float(raw.get("confidence"), None),
                 action_sequence=action_sequence,
                 evidence=[],
+                person_id=worker_label,
             )
         )
 
