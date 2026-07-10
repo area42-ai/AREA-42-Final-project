@@ -74,6 +74,79 @@ outputs/your_video/
 
 ---
 
+## Pipeline A — Quick Start
+
+Pipeline A analyzes a whole video with **Nemotron** (plain-text temporal summary)
+and then converts that text into a normalized incident JSON with **Gemma**. One
+command runs both stages end-to-end.
+
+**Never run this before? Do these three things first:**
+
+1. **Activate the project virtual environment** (it already has OpenCV, the
+   OpenAI SDK, and the Google GenAI SDK installed):
+
+   ```powershell
+   .\.venv\Scripts\Activate.ps1        # Windows PowerShell
+   # source .venv/bin/activate         # macOS/Linux
+   ```
+
+2. **Create your `.env`** from the template and add your API keys:
+
+   ```powershell
+   copy .env.example .env              # Windows  (cp .env.example .env on macOS/Linux)
+   ```
+
+   Then open `.env` and set at least these two values:
+
+   ```env
+   NVIDIA_API_KEY=your_nvidia_api_key_here     # used by Stage 1 (Nemotron)
+   GOOGLE_API_KEY=your_google_api_key_here     # used by Stage 2 (Gemma)
+   ```
+
+3. **Put your video in `data/test/`** (e.g. `data/test/worker_removes_helmet.mp4`).
+
+**Run it (one line):**
+
+```bash
+python scripts/run_pipeline_a.py --video-name worker_removes_helmet.mp4 --output-dir outputs/pipeline_a
+```
+
+Optional flags: `--ppe-items hard_hat,safety_vest,safety_glasses,gloves` (defaults
+to all four) and `--model <gemma-model>` (Stage 2 Gemma model; the Stage 1
+Nemotron model comes from `NVIDIA_NEMOTRON_MODEL`).
+
+**What you get:** on success the command prints exactly one line — the path to the
+final normalized incident JSON — e.g.:
+
+```
+outputs/pipeline_a/worker_removes_helmet_pipeline_a_incident.json
+```
+
+That file follows the shared incident contract:
+
+```json
+{
+  "schema_version": "1.0",
+  "video_id": "worker_removes_helmet",
+  "source_pipeline": "nemotron_gemma",
+  "models": ["nemotron", "gemma-4-26b-a4b-it"],
+  "analysis_scope": ["hard_hat", "safety_vest", "safety_glasses", "gloves"],
+  "incident_detected": true,
+  "incidents": [ /* one entry per confirmed missing PPE item */ ],
+  "summary": "...",
+  "quality": { "parse_success": true, "warnings": [] }
+}
+```
+
+Alongside it, the intermediate Nemotron summary is saved as
+`outputs/pipeline_a/nemotron_<video_stem>_summary.json`.
+
+> If ffmpeg is not on your PATH, videos over 5 MB are sent uncompressed (slower
+> and more costly) — the run still works. Errors (missing key, missing video,
+> wrong environment) print a plain-language message and stop before any API call.
+
+---
+
 ## Pipeline Architecture
 
 ```
