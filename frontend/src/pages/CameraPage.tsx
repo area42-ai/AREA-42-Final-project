@@ -1,18 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 export default function CameraPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function startCamera() {
-      setErrorMessage(null);
-
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setErrorMessage("This browser does not support camera access.");
-        return;
-      }
-
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
