@@ -4,6 +4,8 @@ import json
 import os
 import re
 import shutil
+import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -643,6 +645,21 @@ def main() -> None:
         ),
         encoding="utf-8",
     )
+
+    if incidents:
+        print("\nTriggering Telegram notification bot...")
+        try:
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(__file__).resolve().parent / "send_notification_bot.py"),
+                    "--input",
+                    str(incident_path),
+                ],
+                check=False,
+            )
+        except Exception as notify_err:
+            print(f"Failed to run notification bot: {notify_err}")
 
     print()
     print("DONE")
