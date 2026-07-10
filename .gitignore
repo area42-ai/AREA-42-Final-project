@@ -278,3 +278,4 @@ assets/demo/
 .DS_Store
 Thumbs.db
 
+.tools/node/
