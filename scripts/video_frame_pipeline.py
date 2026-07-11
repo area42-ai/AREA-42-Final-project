@@ -24,6 +24,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -1335,10 +1336,33 @@ def main() -> None:
         quality=quality,
     )
 
+<<<<<<< telegram
+    if incidents:
+        print("\nTriggering Telegram notification bot...")
+        try:
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(__file__).resolve().parent / "send_notification_bot.py"),
+                    "--input",
+                    str(incident_path),
+                ],
+                check=False,
+            )
+        except Exception as notify_err:
+            print(f"Failed to run notification bot: {notify_err}")
+
+    print()
+    print("DONE")
+    print(f"Frame results: {frame_results_path}")
+    print(f"Incident result: {incident_path}")
+    print(f"Evidence frames: {evidence_dir}")
+=======
     write_json(frame_results_path, frame_results)
     write_json(raw_responses_path, raw_responses)
     write_json(incident_path, legacy_document)
     write_json(normalized_path, normalized_document)
+>>>>>>> main
 
     print("\nDONE")
     print(f"Frame results: {frame_results_path}")

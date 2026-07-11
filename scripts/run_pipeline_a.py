@@ -267,6 +267,23 @@ def main() -> None:
             f"    {final_incident_path}"
         )
 
+    # Trigger Telegram notifications if any incidents were detected
+    warn("\nTriggering Telegram notification bot...")
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPTS_DIR / "send_notification_bot.py"),
+                "--input",
+                str(final_incident_path),
+            ],
+            stdout=sys.stderr,
+            stderr=sys.stderr,
+            check=False,
+        )
+    except Exception as notify_err:
+        warn(f"Failed to run notification bot: {notify_err}")
+
     # Success: stdout carries ONLY the final incident JSON path.
     print(str(final_incident_path))
 
