@@ -1,18 +1,26 @@
 """Single entry point for Pipeline A (Nemotron -> Gemma), end-to-end.
 
-Usage:
+Usage (named video already in data/test/, original batch flow):
     python scripts/run_pipeline_a.py --video-name <name> --output-dir <dir> \
         [--ppe-items hard_hat,safety_vest,safety_glasses,gloves] [--model <gemma-model>]
 
-This orchestrator only coordinates the two existing stages as subprocesses:
+Usage (arbitrary video path, e.g. an event-driven segment produced by the
+live pipeline, not necessarily inside data/test/):
+    python scripts/run_pipeline_a.py --video-path <path> --output-dir <dir> \
+        [--ppe-items ...] [--model ...]
+
+Exactly one of --video-name / --video-path must be given.
+
   Stage 1  scripts/native_video_pipeline.py   (video -> plain-text summary)
-  Stage 2  scripts/gemma_text_to_incident.py  (summary -> normalized Incident JSON)
+  Stage 2  scripts/gemma_text_to_incident.py  (summary -> normalized Incident JSON,
+                                                via the Gemma API)
 
-It does not modify either stage. All diagnostics/warnings/errors go to stderr;
-on success, stdout contains ONLY the final incident JSON path.
+It does not modify either stage's model logic. All diagnostics/warnings/errors
+are logged; on success, stdout contains ONLY the final incident JSON path.
 
---model applies to the Gemma conversion stage (Stage 2). The Nemotron model used
-in Stage 1 is controlled by the NVIDIA_NEMOTRON_MODEL environment variable.
+--model applies to the Gemma conversion stage (Stage 2). The Nemotron model
+used in Stage 1 is controlled by the NVIDIA_NEMOTRON_MODEL environment
+variable.
 """
 
 from __future__ import annotations
@@ -20,6 +28,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import logging
 import shutil
 import subprocess
 import sys
@@ -36,6 +45,8 @@ DATA_TEST_DIR = REPO_ROOT / "data" / "test"
 NATIVE_SCRIPT = SCRIPTS_DIR / "native_video_pipeline.py"
 GEMMA_SCRIPT = SCRIPTS_DIR / "gemma_text_to_incident.py"
 
+logger = logging.getLogger(__name__)
+
 # Environment variables required to run Pipeline A end-to-end.
 REQUIRED_ENV_VARS = {
     "NVIDIA_API_KEY": "Stage 1 (Nemotron whole-video analysis)",
@@ -44,15 +55,6 @@ REQUIRED_ENV_VARS = {
 
 # Packages that indicate the project virtual environment is in use.
 REQUIRED_IMPORTS = ("cv2", "openai")
-
-
-def warn(message: str) -> None:
-    print(message, file=sys.stderr)
-
-
-def fail(message: str) -> "None":
-    print(message, file=sys.stderr)
-    raise SystemExit(1)
 
 
 def venv_activation_hint() -> str:
@@ -73,10 +75,12 @@ def check_environment_imports() -> None:
         if importlib.util.find_spec(name) is None
     ]
     if missing:
-        fail(
-            "Missing required Python package(s): "
-            f"{', '.join(missing)}.\n" + venv_activation_hint()
+        logger.error(
+            "Missing required Python package(s): %s.\n%s",
+            ", ".join(missing),
+            venv_activation_hint(),
         )
+        raise SystemExit(1)
 
 
 def check_required_env_vars() -> None:
@@ -97,7 +101,8 @@ def check_required_env_vars() -> None:
         lines.append("Then set each variable in .env, for example:")
         for name in missing:
             lines.append(f"    {name}=your_value_here")
-        fail("\n".join(lines))
+        logger.error("\n".join(lines))
+        raise SystemExit(1)
 
 
 def resolve_video_path(video_name: str) -> Path:
@@ -120,14 +125,24 @@ def resolve_video_path(video_name: str) -> Path:
             lines.append("  (no files)")
     else:
         lines.append(f"  (directory does not exist: {DATA_TEST_DIR})")
-    fail("\n".join(lines))
-    raise AssertionError("unreachable")  # pragma: no cover
+    logger.error("\n".join(lines))
+    raise SystemExit(1)
+
+
+def resolve_explicit_video_path(video_path: str) -> Path:
+    candidate = Path(video_path)
+    if not candidate.is_absolute():
+        candidate = (REPO_ROOT / candidate).resolve()
+    if not candidate.exists():
+        logger.error("Video not found at explicit --video-path: %s", candidate)
+        raise SystemExit(1)
+    return candidate
 
 
 def check_ffmpeg() -> None:
     if shutil.which("ffmpeg") is None:
-        warn(
-            "WARNING: ffmpeg is not on PATH. Videos over 5MB will be sent "
+        logger.warning(
+            "ffmpeg is not on PATH. Videos over 5MB will be sent "
             "uncompressed (slower and more expensive), but the run will "
             "continue."
         )
@@ -141,15 +156,13 @@ def run_stage(command: list[str], stage_label: str) -> subprocess.CompletedProce
         text=True,
     )
     if result.returncode != 0:
-        warn(f"{stage_label} failed (exit code {result.returncode}).")
+        logger.error("%s failed (exit code %d).", stage_label, result.returncode)
         stderr_text = (result.stderr or "").strip()
         stdout_text = (result.stdout or "").strip()
         if stderr_text:
-            warn("--- stderr ---")
-            warn(stderr_text)
+            logger.error("--- stderr ---\n%s", stderr_text)
         elif stdout_text:
-            warn("--- output ---")
-            warn(stdout_text)
+            logger.error("--- output ---\n%s", stdout_text)
         raise SystemExit(result.returncode)
     return result
 
@@ -161,10 +174,20 @@ def parse_arguments() -> argparse.Namespace:
             "by Gemma text-to-JSON conversion into the normalized contract."
         )
     )
-    parser.add_argument(
+    video_group = parser.add_mutually_exclusive_group(required=True)
+    video_group.add_argument(
         "--video-name",
-        required=True,
+        default=None,
         help="Video filename inside data/test/ (e.g. worker_removes_helmet.mp4).",
+    )
+    video_group.add_argument(
+        "--video-path",
+        default=None,
+        help=(
+            "Full/relative path to a video anywhere on disk (e.g. an "
+            "event-driven segment produced by the live pipeline). Use this "
+            "instead of --video-name when the file is not inside data/test/."
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -191,13 +214,23 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
+
     args = parse_arguments()
 
     # --- Environment checks (before any work) ---
     check_environment_imports()
     load_dotenv(dotenv_path=REPO_ROOT / ".env")
     check_required_env_vars()
-    video_path = resolve_video_path(args.video_name)
+
+    if args.video_path:
+        video_path = resolve_explicit_video_path(args.video_path)
+    else:
+        video_path = resolve_video_path(args.video_name)
+
     check_ffmpeg()
 
     stem = video_path.stem
@@ -211,38 +244,41 @@ def main() -> None:
     final_incident_path = abs_output_dir / f"{stem}_pipeline_a_incident.json"
 
     # --- Stage 1: Nemotron whole-video -> plain-text summary ---
-    stage1_command = [
-        sys.executable,
-        str(NATIVE_SCRIPT),
-        args.video_name,
-        "--output-dir",
-        args.output_dir,
-    ]
+    stage1_command = [sys.executable, str(NATIVE_SCRIPT)]
+    if args.video_path:
+        stage1_command += ["--video-path", str(video_path)]
+    else:
+        stage1_command += [args.video_name]
+    stage1_command += ["--output-dir", args.output_dir]
     if args.ppe_items:
         stage1_command += ["--ppe-items", args.ppe_items]
     run_stage(stage1_command, "Stage 1 (native_video_pipeline.py)")
 
     # --- Locate and validate the Nemotron summary ---
     if not summary_path.exists():
-        fail(
-            "Stage 1 finished but the expected summary file was not found:\n"
-            f"    {summary_path}"
+        logger.error(
+            "Stage 1 finished but the expected summary file was not found: %s",
+            summary_path,
         )
+        raise SystemExit(1)
     if summary_path.stat().st_size == 0:
-        fail(f"Stage 1 produced an empty summary file:\n    {summary_path}")
+        logger.error("Stage 1 produced an empty summary file: %s", summary_path)
+        raise SystemExit(1)
     try:
         summary_data = json.loads(summary_path.read_text(encoding="utf-8"))
     except ValueError as error:
-        fail(
-            f"Stage 1 summary file is not valid JSON:\n    {summary_path}\n"
-            f"    {error}"
+        logger.error(
+            "Stage 1 summary file is not valid JSON: %s\n%s", summary_path, error
         )
+        raise SystemExit(1)
     summary_text = summary_data.get("summary_output")
     if not isinstance(summary_text, str) or not summary_text.strip():
-        fail(
+        logger.error(
             "Stage 1 summary has no usable 'summary_output' text (the model "
-            f"returned nothing to convert):\n    {summary_path}"
+            "returned nothing to convert): %s",
+            summary_path,
         )
+        raise SystemExit(1)
 
     # --- Stage 2: summary -> normalized Incident JSON ---
     stage2_command = [
@@ -262,10 +298,11 @@ def main() -> None:
     run_stage(stage2_command, "Stage 2 (gemma_text_to_incident.py)")
 
     if not final_incident_path.exists():
-        fail(
-            "Stage 2 finished but the final incident file was not found:\n"
-            f"    {final_incident_path}"
+        logger.error(
+            "Stage 2 finished but the final incident file was not found: %s",
+            final_incident_path,
         )
+        raise SystemExit(1)
 
     # Success: stdout carries ONLY the final incident JSON path.
     print(str(final_incident_path))
