@@ -50,9 +50,9 @@ load_dotenv(dotenv_path=REPO_ROOT / ".env")
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_NEMOTRON_MODEL = os.getenv(
-    "NVIDIA_NEMOTRON_MODEL",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+_nemotron_env = os.getenv("NVIDIA_NEMOTRON_MODEL", "").strip()
+DEFAULT_NEMOTRON_MODEL = (
+    _nemotron_env if _nemotron_env else "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
 )
 DEFAULT_OUTPUT_DIR = "outputs/nemotron_test"
 SIZE_THRESHOLD_MB = 5.0
@@ -147,6 +147,8 @@ Reporting rules:
   removed, vest put on).
 - If a body area is not visible, say it is not possible to evaluate. Not being
   able to see an item is NOT a violation.
+- A gloves absence may be reported only while at least one actual hand is
+  visibly detected; if no hand is visible, gloves are impossible to evaluate.
 - Do not invent objects, people, or actions that are not visible.
 - Do not decide whether to send any notification or alert.
 

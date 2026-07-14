@@ -210,6 +210,16 @@ def parse_arguments() -> argparse.Namespace:
             "is set by the NVIDIA_NEMOTRON_MODEL environment variable."
         ),
     )
+    parser.add_argument(
+        "--camera-name",
+        default=os.getenv("CAMERA_NAME", "Kamera-1"),
+        help="Telegram mesajlarında gösterilecek kamera adı.",
+    )
+    parser.add_argument(
+        "--skip-notification",
+        action="store_true",
+        help="Bildirim üst seviye canlı akış yöneticisi tarafından gönderilecek.",
+    )
     return parser.parse_args()
 
 
@@ -304,22 +314,24 @@ def main() -> None:
         )
         raise SystemExit(1)
 
-    # Trigger Telegram notifications if any incidents were detected
-    warn("\nTriggering Telegram notification bot...")
-    try:
-        subprocess.run(
-            [
-                sys.executable,
-                str(SCRIPTS_DIR / "send_notification_bot.py"),
-                "--input",
-                str(final_incident_path),
-            ],
-            stdout=sys.stderr,
-            stderr=sys.stderr,
-            check=False,
-        )
-    except Exception as notify_err:
-        warn(f"Failed to run notification bot: {notify_err}")
+    if not args.skip_notification:
+        logger.warning("\nTriggering Telegram notification bot...")
+        try:
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS_DIR / "send_notification_bot.py"),
+                    "--input",
+                    str(final_incident_path),
+                    "--camera-name",
+                    args.camera_name,
+                ],
+                stdout=sys.stderr,
+                stderr=sys.stderr,
+                check=False,
+            )
+        except Exception as notify_err:
+            logger.warning("Failed to run notification bot: %s", notify_err)
 
     # Success: stdout carries ONLY the final incident JSON path.
     print(str(final_incident_path))

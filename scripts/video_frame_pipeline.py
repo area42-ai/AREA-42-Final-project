@@ -111,7 +111,7 @@ def build_prompt(ppe_items: list[str]) -> str:
             f"- {item}: if {invisible_phrase}, status must be unknown."
         )
 
-    example_block = "{\n  \"person_visible\": true,\n  \"ppe\": {\n" + ",\n".join(
+    example_block = "{\n  \"person_visible\": true,\n  \"hand_visible\": true,\n  \"ppe\": {\n" + ",\n".join(
         example_entries
     ) + "\n  }\n}"
     rules_block = "\n".join(rule_lines)
@@ -131,6 +131,8 @@ Rules:
 - present means the item is clearly worn correctly.
 - missing means the relevant body area is visible and the item is not worn.
 - unknown means the item cannot be judged reliably.
+- hand_visible must be true only if at least one actual hand is visibly detected.
+- If hand_visible is false, gloves status must be unknown, never missing.
 {rules_block}
 - confidence must be exactly one of: high, medium, low.
 - evidence must be one short factual sentence about visible pixels only.
@@ -264,6 +266,11 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Extract sampled frames and write metadata without API calls.",
     )
+    parser.add_argument(
+        "--camera-name",
+        default=os.getenv("CAMERA_NAME", "Kamera-1"),
+        help="Telegram bildiriminde gösterilecek kamera adı/numarası.",
+    )
     return parser.parse_args()
 
 
@@ -348,12 +355,38 @@ def normalize_frame(
         else None
     )
 
+    # The gloves rule is deliberately deterministic: model output saying
+    # "gloves missing" is not actionable unless a hand object is also visible.
+    hand_visible_value = result.get("hand_visible")
+    if isinstance(hand_visible_value, bool):
+        hand_visible = hand_visible_value
+    else:
+        detections = result.get("detections", result.get("objects", []))
+        if not isinstance(detections, list):
+            detections = []
+        labels = []
+        for detection in detections:
+            if isinstance(detection, dict):
+                labels.append(
+                    str(
+                        detection.get("label")
+                        or detection.get("class")
+                        or detection.get("name")
+                        or ""
+                    ).casefold()
+                )
+            else:
+                labels.append(str(detection).casefold())
+        hand_visible = any(label in {"hand", "hands", "el"} for label in labels)
+
     ppe: dict[str, dict[str, Any]] = {}
     for item in ppe_items:
         entry = raw_ppe.get(item)
         if not isinstance(entry, dict):
             entry = {}
         status = normalize_status(entry.get("status", "unknown"))
+        if item == "gloves" and not hand_visible:
+            status = "unknown"
         confidence = str(entry.get("confidence", "low")).lower().strip()
         if confidence not in {"high", "medium", "low"}:
             confidence = "low"
@@ -364,7 +397,11 @@ def normalize_frame(
             "evidence": evidence,
         }
 
-    return {"person_visible": person_visible, "ppe": ppe}
+    return {
+        "person_visible": person_visible,
+        "hand_visible": hand_visible,
+        "ppe": ppe,
+    }
 
 
 def resize_frame(frame: Any, max_dimension: int) -> Any:
@@ -1336,7 +1373,11 @@ def main() -> None:
         quality=quality,
     )
 
-<<<<<<< telegram
+    write_json(frame_results_path, frame_results)
+    write_json(raw_responses_path, raw_responses)
+    write_json(incident_path, legacy_document)
+    write_json(normalized_path, normalized_document)
+
     if incidents:
         print("\nTriggering Telegram notification bot...")
         try:
@@ -1345,24 +1386,14 @@ def main() -> None:
                     sys.executable,
                     str(Path(__file__).resolve().parent / "send_notification_bot.py"),
                     "--input",
-                    str(incident_path),
+                    str(normalized_path),
+                    "--camera-name",
+                    args.camera_name,
                 ],
                 check=False,
             )
         except Exception as notify_err:
             print(f"Failed to run notification bot: {notify_err}")
-
-    print()
-    print("DONE")
-    print(f"Frame results: {frame_results_path}")
-    print(f"Incident result: {incident_path}")
-    print(f"Evidence frames: {evidence_dir}")
-=======
-    write_json(frame_results_path, frame_results)
-    write_json(raw_responses_path, raw_responses)
-    write_json(incident_path, legacy_document)
-    write_json(normalized_path, normalized_document)
->>>>>>> main
 
     print("\nDONE")
     print(f"Frame results: {frame_results_path}")
