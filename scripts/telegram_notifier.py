@@ -376,6 +376,14 @@ class TelegramNotifier:
         while not self._stop_event.is_set():
             try:
                 self.poll_callbacks_once()
+            except requests.exceptions.HTTPError as exc:
+                if exc.response is not None and exc.response.status_code == 409:
+                    # Another instance is long-polling; wait for its session to expire
+                    logger.warning("[TELEGRAM] 409 Conflict — another instance polling; retrying in 30s")
+                    self._stop_event.wait(30)
+                else:
+                    logger.warning("[TELEGRAM] Callback listener error: %s", exc)
+                    self._stop_event.wait(3)
             except Exception as exc:
                 logger.warning("[TELEGRAM] Callback listener error: %s", exc)
                 self._stop_event.wait(3)

@@ -3,6 +3,7 @@ import sys
 import json
 import subprocess
 import time
+from datetime import datetime
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 
@@ -62,7 +63,7 @@ FRONTEND_DIR = REPO_ROOT / "frontend"
 app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
 
 # Register camera streaming blueprint
-from camera_stream import camera_bp
+from camera_stream import camera_bp, release_camera
 app.register_blueprint(camera_bp)
 
 # Ensure data directory exists
@@ -268,6 +269,33 @@ def analyze_video():
         })
     
 
+@app.route("/api/alerts")
+def get_alerts():
+    alerts = []
+    logs_root = REPO_ROOT / "data" / "output_logs"
+    if logs_root.exists():
+        for timeline_file in logs_root.rglob("live_incident_timeline.json"):
+            try:
+                doc = json.loads(timeline_file.read_text(encoding="utf-8"))
+                mtime = datetime.fromtimestamp(timeline_file.stat().st_mtime).isoformat()
+                for inc in doc.get("incidents", []):
+                    alerts.append({
+                        "id": inc.get("incident_id", ""),
+                        "timestamp": mtime,
+                        "description": (
+                            f"{inc.get('ppe_item', 'PPE')} violation detected. "
+                            f"{inc.get('worker_description', '')}".strip()
+                        ),
+                        "image_path": "",
+                        "violators_details": [{"person_id": 1, "missing": [inc.get("ppe_item", "")]}],
+                        "confidence": 0.9,
+                    })
+            except Exception:
+                continue
+    alerts.sort(key=lambda a: a["timestamp"], reverse=True)
+    return jsonify(alerts)
+
+
 @app.route("/api/live/start", methods=["POST"])
 def start_live_monitoring():
     global LIVE_PIPELINE_PROCESS
@@ -280,6 +308,12 @@ def start_live_monitoring():
         })
 
     script_path = REPO_ROOT / "scripts" / "live_stream_pipeline.py"
+
+    # Release the browser preview capture so the pipeline subprocess can open the camera.
+    # The preview will restart automatically on the next /api/stream/<id> request.
+    cam_raw = os.getenv("CAMERA_SOURCE", "0")
+    if str(cam_raw).isdigit():
+        release_camera(int(cam_raw))
 
     try:
         LIVE_PIPELINE_PROCESS = subprocess.Popen(
