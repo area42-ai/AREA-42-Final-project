@@ -10,6 +10,7 @@ const state = {
     isStreaming: false,      // Webcam active state
     isFilePlaying: false,    // Uploaded file active state
     isRecording: false,
+    isMonitoring: false,
     currentView: 'dashboard',
     
     // Safety requirements
@@ -333,10 +334,14 @@ function setupControlsListeners() {
     
     // Incident Force Reporting
 
+
+
     
     // Record Button
     elements.btnRecord.addEventListener('click', toggleRecordingState);
     
+
+
     // Modal Close
     elements.modalClose.addEventListener('click', closeModal);
 }
@@ -657,7 +662,7 @@ function stopActiveFeed() {
     elements.btnPauseStream.disabled = true;
     elements.btnRecord.disabled = true;
     elements.btnRecord.classList.remove('recording-active');
-    elements.btnRecord.innerHTML = '<span class="record-indicator-dot"></span> Record stream';
+    elements.btnRecord.innerHTML = '<span class="record-indicator-dot"></span> Start Monitoring';
     
     updateHeaderMetrics(0, 0);
     updateStatusText(`${state.cameras.length} CAMERA${state.cameras.length > 1 ? 'S' : ''} READY`, 'green');
@@ -1006,62 +1011,69 @@ function toggleFullscreen() {
 let mediaRecorder = null;
 let recordedChunks = [];
 
-function toggleRecordingState() {
-    if (!state.isStreaming && !state.isFilePlaying) return;
-    
-    if (!state.isRecording) {
+async function toggleRecordingState() {
+
+    if (!state.isMonitoring) {
+
         try {
-            const stream = elements.cameraCanvas.captureStream(30);
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-            recordedChunks = [];
-            
-            mediaRecorder.ondataavailable = function(e) {
-                if (e.data.size > 0) {
-                    recordedChunks.push(e.data);
-                }
-            };
-            
-            mediaRecorder.onstop = function() {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const formData = new FormData();
-                const filename = `recording_${Date.now()}.webm`;
-                formData.append('file', blob, filename);
-                
-                showToast("Saving recording to server...", "warning");
-                fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(data => {
-                    showToast("Recording saved to archive", "success");
-                    fetchRecordings();
-                })
-                .catch(err => {
-                    console.error("Recording save error", err);
-                    showToast("Failed to save recording", "danger");
-                });
-            };
-            
-            mediaRecorder.start();
-            state.isRecording = true;
-            
-            elements.btnRecord.classList.add('recording-active');
-            elements.btnRecord.textContent = "Stop stream recording";
-            showToast("Recording safety video logs active...", "success");
-        } catch (e) {
-            console.error(e);
-            showToast("Failed to start MediaRecorder", "danger");
+
+            const response = await fetch("/api/live/start", {
+                method: "POST"
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+                showToast(result.error || "Failed to start monitoring", "danger");
+                return;
+            }
+
+            state.isMonitoring = true;
+
+            elements.btnRecord.classList.add("recording-active");
+            elements.btnRecord.textContent = "Stop Monitoring";
+
+            showToast("AI monitoring started", "success");
+
+        } catch (err) {
+
+            console.error(err);
+            showToast("Failed to start monitoring", "danger");
+
         }
+
     } else {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
+
+        try {
+
+            const response = await fetch("/api/live/stop", {
+                method: "POST"
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+                showToast(result.error || "Failed to stop monitoring", "danger");
+                return;
+            }
+
+            state.isMonitoring = false;
+
+            elements.btnRecord.classList.remove("recording-active");
+            elements.btnRecord.innerHTML =
+                '<span class="record-indicator-dot"></span> Start Monitoring';
+
+            showToast("AI monitoring stopped", "warning");
+
+        } catch (err) {
+
+            console.error(err);
+            showToast("Failed to stop monitoring", "danger");
+
         }
-        state.isRecording = false;
-        
-        elements.btnRecord.classList.remove('recording-active');
-        elements.btnRecord.innerHTML = '<span class="record-indicator-dot"></span> Record stream';
+
     }
+
 }
 
 // ----------------------------------------------------
