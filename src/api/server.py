@@ -4,11 +4,12 @@ import json
 import subprocess
 import time
 from pathlib import Path
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 
 # Load environment variables
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # Try importing contract helpers (fallback if not available)
 try:
@@ -54,7 +55,13 @@ except ImportError:
             "quality": quality or {"parse_success": True, "warnings": []}
         }
 
-app = Flask(__name__)
+FRONTEND_DIR = REPO_ROOT / "frontend"
+
+app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
+
+# Register camera streaming blueprint
+from camera_stream import camera_bp
+app.register_blueprint(camera_bp)
 
 # Ensure data directory exists
 DATA_TEST_DIR = REPO_ROOT / "data" / "test"
@@ -69,6 +76,11 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS,PUT,DELETE"
     return response
+
+@app.route("/")
+def serve_frontend():
+    return send_from_directory(str(FRONTEND_DIR), "index.html")
+
 
 @app.route("/api/videos", methods=["GET"])
 def list_videos():

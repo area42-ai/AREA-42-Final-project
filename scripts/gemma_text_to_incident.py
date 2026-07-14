@@ -60,6 +60,9 @@ Rules:
 - Allowed status values: present, missing, unknown, not_applicable.
 - If visibility is not stated for an item, treat it as unknown - NOT missing.
 - Only emit an incident when an item is clearly missing.
+- For gloves specifically, only emit an incident if the summary explicitly
+  says that at least one hand is visible while gloves are absent. No visible
+  hand means unknown, never a gloves incident.
 - Times are numeric seconds (floats). Convert mm:ss to seconds.
 - If the summary says the item was put back on, set end_seconds to that time.
 - If absence was confirmed but never resolved, set end_seconds to null and, if

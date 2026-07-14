@@ -68,6 +68,7 @@ class SegmentDispatcher:
             str(segment.path),
             "--output-dir",
             str(self.output_dir),
+            "--skip-notification",
         ]
         if self.ppe_items:
             command += ["--ppe-items", self.ppe_items]

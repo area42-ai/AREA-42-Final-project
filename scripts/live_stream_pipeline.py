@@ -89,6 +89,11 @@ def _parse_args() -> argparse.Namespace:
             "so multiple instances don't collide. Default: live_stream."
         ),
     )
+    parser.add_argument(
+        "--camera-name",
+        default=os.getenv("CAMERA_NAME", "Kamera-1"),
+        help="Bildirimlerde gösterilecek benzersiz kamera adı/numarası.",
+    )
     return parser.parse_args()
 
 
@@ -141,8 +146,19 @@ def start_stream(args: argparse.Namespace) -> None:
     tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
     tg_chat = os.getenv("TELEGRAM_CHAT_ID", "").strip()
     if tg_token and tg_chat:
-        notifier = TelegramNotifier(token=tg_token, chat_id=tg_chat)
-        logger.info("[TELEGRAM] Notifications enabled (chat_id=%s)", tg_chat)
+        notifier = TelegramNotifier(
+            token=tg_token,
+            chat_id=tg_chat,
+            camera_name=args.camera_name,
+            state_path=REPO_ROOT / "data" / video_id / "telegram_state.json",
+            recurring_seconds=float(os.getenv("TELEGRAM_RECURRING_SECONDS", "300")),
+        )
+        notifier.start_callback_listener()
+        logger.info(
+            "[TELEGRAM] Notifications enabled (chat_id=%s, camera=%s)",
+            tg_chat,
+            args.camera_name,
+        )
     else:
         logger.warning("[TELEGRAM] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set; notifications disabled.")
 
@@ -198,6 +214,9 @@ def start_stream(args: argparse.Namespace) -> None:
         dispatcher.shutdown(wait=True)
         final_document = state_manager.finalize()
         state_manager.persist(final_document)
+        if notifier is not None:
+            notifier.notify_if_needed(final_document)
+            notifier.stop_callback_listener()
         logger.info("Pipeline shut down safely. Final timeline: %s", timeline_path)
 
 
