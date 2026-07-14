@@ -18,8 +18,8 @@ timestamped evidence with notifications.
 
 ## Project status
 
-- Technical planning. Implementation of the pipeline has not started; the `src/`
-modules are planned placeholders.
+- **Active development.** The end-to-end pipeline is implemented and running.
+- Live stream pipeline, Pipeline A (Nemotron + Gemma), Telegram notifications, FastAPI backend, and the web dashboard are all operational.
 - Current technical direction: **API-first** (see `docs/ARCHITECTURE.md`).
 
 

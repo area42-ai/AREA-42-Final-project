@@ -1,99 +1,226 @@
-# Architecture — Watch Out (Proposed, API-first)
+# Architecture — Watch Out
 
-This document describes the **current proposed** API-first architecture for
-**Watch Out**. It is a design reference, not implemented code. No application
-code is created by this document. Treat everything here as **Proposed** unless it
-is listed under "Confirmed design" below.
+Current as of July 2026. Describes the implemented system, not a proposal.
 
-> Accuracy note: the external model is an NVIDIA model accessed via API. The
-> exact model, endpoint, capabilities, pricing, and limits are **TBD** (see
-> `docs/PROJECT_CONTEXT.md`). Do not invent them.
+---
 
-## Pipeline overview
+## Overview
 
-```text
-Video file or camera stream
-  → frame sampling / extraction
-  → preprocessing
-  → NVIDIA model API request
-  → normalized inference response
-  → event / violation interpretation
-  → timestamped evidence
-  → saved evidence clip or frame
-  → notification or dashboard presentation
+Watch Out has two entry points that share the same core inference pipeline (Pipeline A):
+
+| Entry point | Use case |
+|---|---|
+| `scripts/live_stream_pipeline.py` | Real-time webcam or RTSP feed |
+| `scripts/run_pipeline_a.py` | Offline analysis of a video file |
+
+Both produce the same [Incident JSON contract](#incident-json-contract) and optionally send Telegram alerts.
+
+---
+
+## Live Stream Pipeline (event-driven)
+
+```
+Webcam / RTSP
+      │
+      ▼
+PerceptionLayer              scripts/perception_layer.py
+  - motion detection (frame diff)
+  - person presence gate
+  - cheap: no API call
+      │
+      │  activity_detected=True/False
+      ▼
+ActiveBufferManager          scripts/active_buffer_manager.py
+  - rolling pre-roll ring buffer (default 2 s)
+  - starts recording on activity_detected=True
+  - stops after POST_ROLL_SECONDS of silence (default 3 s)
+  - hard caps: MAX_EVENT_DURATION_SECONDS (18 s), MAX_SEGMENT_SIZE_BYTES (7 MB)
+  - emits VideoSegment on close
+      │
+      │  VideoSegment(path, duration_seconds, frame_count)
+      ▼
+SegmentDispatcher            scripts/segment_dispatcher.py
+  - bounded ThreadPoolExecutor (3 workers)
+  - each worker runs Pipeline A end-to-end on one segment
+      │
+      ├── Stage 1: native_video_pipeline.py  (Nemotron)
+      │     video → base64 frames → NVIDIA API → plain-text summary JSON
+      │
+      └── Stage 2: gemma_text_to_incident.py (Gemma)
+            summary text → Google GenAI API → normalized Incident JSON
+                │
+      ┌─────────┴──────────┐
+      ▼                    ▼
+EvidenceManager      TelegramNotifier
+keyframe JPEGs       alert with summary
+data/evidence/       and evidence photo
+      │
+      ▼
+IncidentStateManager         scripts/incident_state_manager.py
+  - tracks open incidents across consecutive segments
+  - merges overlapping incidents (same PPE item, same worker description)
+  - writes live_incident_timeline.json on finalize
 ```
 
-## Components
+### Configuration constants (`live_stream_pipeline.py`)
 
-| Stage | Responsibility | Inputs | Outputs | Planned location |
-| ----- | -------------- | ------ | ------- | ---------------- |
-| Video input | Read a video file or single camera stream | File path / stream URL | Decoded frames + timestamps | `src/video/` |
-| Frame sampling / extraction | Select frames (e.g. every Nth frame) to limit API calls | Decoded frames | Sampled frames + timestamps | `src/video/` |
-| Preprocessing | Prepare frames for the API (resize/encode as required) | Sampled frames | API-ready frame payloads | `src/detection/` |
-| NVIDIA model API request | Call the external NVIDIA model with the frame payload | Frame payload + API key | Raw inference response | `src/detection/` |
-| Response normalization | Convert the raw API response into a consistent internal format | Raw API response | Normalized detections | `src/detection/` |
-| Event / violation interpretation | Map detections to safety events; apply persistent-violation logic | Normalized detections + per-person context | Confirmed violations | `src/rules/`, `src/tracking/` |
-| Timestamped evidence | Attach timestamps and context to a confirmed violation | Confirmed violation | Evidence metadata | `src/incidents/` |
-| Saved evidence clip / frame | Persist a frame or clip for the violation | Frame/clip + metadata | Evidence file (stored outside Git) | `src/incidents/` |
-| Notification / dashboard | Notify responsible people and/or present results | Evidence + metadata | Notification / UI view | `src/notifications/`, `src/api/`, `src/ui/` |
+| Constant | Default | Description |
+|---|---|---|
+| `TARGET_FPS` | 4 | Frames captured per second (Nemotron's sweet spot) |
+| `RESOLUTION` | 1280×720 | Downscaled before encoding |
+| `PRE_ROLL_SECONDS` | 2.0 | Buffer kept before an event starts |
+| `POST_ROLL_SECONDS` | 3.0 | Extra frames captured after activity stops |
+| `MIN_SEGMENT_SECONDS` | 1.5 | Segments shorter than this are discarded as noise |
+| `MAX_EVENT_DURATION_SECONDS` | 18.0 | Long events are split; ISM stitches them back |
+| `MAX_SEGMENT_SIZE_BYTES` | 7 MB | Hard size cap before rotation |
+| `DISPATCH_MAX_WORKERS` | 3 | Parallel Pipeline A workers |
 
-> Person tracking (`src/tracking/`) is **proposed** to make violations
-> per-person rather than per-frame. Whether and how tracking is done may depend
-> on the chosen model's capabilities (TBD).
+---
 
-## Expected inputs and outputs (system level)
+## Pipeline A — Video File Analysis
 
-- **Input:** a single video file or one camera stream.
-- **Output:** confirmed, timestamped violations with saved evidence (frame or
-  clip stored outside Git) plus a notification and/or dashboard entry.
+```
+Video file (MP4 / AVI / ...)
+      │
+      ▼
+Stage 1 — native_video_pipeline.py
+  - reads video with OpenCV
+  - samples at TARGET_FPS, downscales to RESOLUTION
+  - compresses with ffmpeg if available (< 5 MB target)
+  - sends to NVIDIA Nemotron via OpenAI-compatible API
+  - receives plain-text temporal summary
+  - saves: outputs/<dir>/nemotron_<stem>_summary.json
+      │
+      ▼
+Stage 2 — gemma_text_to_incident.py
+  - reads the Nemotron summary text
+  - sends to Google Gemma via GenAI API with structured extraction prompt
+  - parses response into normalized Incident JSON
+  - saves: outputs/<dir>/<stem>_pipeline_a_incident.json
+      │
+      ▼ (optional)
+send_notification_bot.py
+  - reads the incident JSON
+  - sends Telegram alert if incident_detected=True
+```
 
-## External dependency boundary
+### API models
 
-- The only external inference dependency is the **NVIDIA model API**.
-- The boundary is the request/response between preprocessing and response
-  normalization. Everything inside the boundary (normalization, interpretation,
-  evidence, presentation) is owned by Watch Out.
-- The API key is configuration/secret and must never be committed (see
-  `docs/ASSET_POLICY.md`).
-- The specific model, endpoint, request/response schema, capabilities, pricing,
-  and limits are **TBD**; normalization isolates the rest of the system from
-  these details.
+| Stage | Model | Provider | Env var |
+|---|---|---|---|
+| Stage 1 | `nvidia/llama-3.2-90b-vision-instruct` (default) | NVIDIA build | `NVIDIA_NEMOTRON_MODEL` |
+| Stage 2 | `gemma-4-26b-a4b-it` (default) | Google AI Studio | `--model` flag |
 
-## Failure handling considerations (proposed)
+---
 
-- Treat the API as unreliable: handle network errors, non-200 responses,
-  malformed/empty responses, and partial results.
-- Use retries with backoff for transient failures; fail gracefully and skip a
-  frame rather than crashing the pipeline.
-- Log failures without storing sensitive payloads; degrade to "no detection for
-  this frame" instead of producing false violations.
+## Incident JSON Contract
 
-## API timeout / rate-limit considerations (proposed)
+Defined in `scripts/incident_contract.py`. Every pipeline output follows this schema:
 
-- Apply per-request timeouts so a slow API call does not stall the pipeline.
-- Frame sampling reduces call volume; sampling rate is **TBD**.
-- Respect the provider's rate limits (limits **TBD**); throttle or queue
-  requests as needed and back off on rate-limit responses.
+```json
+{
+  "schema_version": "1.0",
+  "video_id": "string",
+  "source_pipeline": "nemotron_gemma",
+  "models": ["nemotron", "gemma-4-26b-a4b-it"],
+  "analysis_scope": ["hard_hat", "safety_vest", "safety_glasses", "gloves"],
+  "incident_detected": true,
+  "incidents": [
+    {
+      "incident_id": "uuid",
+      "ppe_item": "hard_hat",
+      "worker_description": "worker in orange vest near door",
+      "start_time": 12.0,
+      "end_time": 34.5,
+      "duration_seconds": 22.5,
+      "severity": "high",
+      "frame_count": 90
+    }
+  ],
+  "summary": "Human-readable summary of all detected incidents.",
+  "quality": {
+    "parse_success": true,
+    "warnings": []
+  }
+}
+```
 
-## Privacy and security considerations (proposed)
+The `incident_id` is a stable UUID. The live pipeline uses `<video_id>:<incident_id>` as a composite key for the API.
 
-- Video may contain people; treat frames and evidence as sensitive.
-- Keep API keys in environment variables / secrets, never in code or Git.
-- Do not commit videos, frames, clips, or raw API responses (see
-  `docs/ASSET_POLICY.md`).
-- Store evidence and test/demo media outside Git in approved external storage.
-- Avoid logging raw frames or sensitive API response content.
+---
 
-## Confirmed vs proposed design
+## FastAPI Backend
 
-- **Confirmed design:**
-  - The architecture is API-first.
-  - Inference is performed by an external NVIDIA model accessed via an API key,
-    not a custom-trained model (for the MVP).
-  - Datasets, videos, weights, secrets, and generated outputs are not committed.
+Entry point: `src/api/server.py` → `src/api/main.py`
 
-- **Proposed design (subject to change):**
-  - The specific stage breakdown, module boundaries, sampling strategy,
-    tracking approach, persistent-violation thresholds, evidence format, and
-    notification/dashboard scope.
-  - All concrete model/API details, which remain **TBD**.
+Base URL: `http://localhost:8000`
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/health` | Liveness check |
+| `GET` | `/api/cameras` | List all camera IDs with incident counts |
+| `GET` | `/api/incidents` | All incidents across all cameras |
+| `GET` | `/api/incidents/{camera_id}:{incident_id}` | Single incident detail |
+| `GET` | `/api/settings/language` | Current UI language |
+| `POST` | `/api/settings/language` | Set UI language (`en`, `ru`, `az`) |
+
+Data is read from `outputs/live/<camera_id>/normalized_incident.json`. The backend is stateless — no database.
+
+---
+
+## Frontend Dashboard
+
+`frontend/index.html` + `frontend/app.js` + `frontend/style.css`
+
+Vanilla JS, no build step required. Served by any static file server or Python's `http.server`. Communicates with the FastAPI backend at `http://localhost:8000`.
+
+Features: camera list, incident timeline, incident detail modal, language switcher (EN / RU / AZ).
+
+---
+
+## Data Flow Diagram
+
+```
+.env
+ └─ NVIDIA_API_KEY ──► Stage 1 (Nemotron)
+ └─ GOOGLE_API_KEY ──► Stage 2 (Gemma)
+ └─ TELEGRAM_BOT_TOKEN ──► TelegramNotifier
+ └─ CAMERA_SOURCE ──► live_stream_pipeline
+
+Webcam/RTSP
+ └─► PerceptionLayer ──► ActiveBufferManager
+       └─► SegmentDispatcher
+             ├─► Stage 1 + Stage 2
+             │     └─► data/event_segments/<video_id>/
+             │     └─► data/output_logs/<video_id>/live_incident_timeline.json
+             ├─► EvidenceManager
+             │     └─► data/evidence/<video_id>/
+             └─► TelegramNotifier
+                   └─► Telegram chat
+
+FastAPI ──► outputs/live/<camera_id>/normalized_incident.json
+Frontend ──► http://localhost:8000/api/*
+```
+
+---
+
+## External Dependencies Boundary
+
+| External service | Used by | Auth |
+|---|---|---|
+| NVIDIA build API (Nemotron) | `native_video_pipeline.py` | `NVIDIA_API_KEY` env var |
+| Google AI Studio API (Gemma) | `gemma_text_to_incident.py` | `GOOGLE_API_KEY` env var |
+| Telegram Bot API | `telegram_notifier.py`, `send_notification_bot.py` | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` |
+
+All API keys are environment variables and must never be committed. See [`docs/ASSET_POLICY.md`](ASSET_POLICY.md).
+
+---
+
+## Failure Handling
+
+- **NVIDIA API errors** (5xx, timeout, malformed response): logged, segment marked as failed, moved to `data/failed_segments/`. Pipeline continues.
+- **Gemma parse failure**: logged with `quality.parse_success=false`, warnings attached to the incident JSON.
+- **Camera disconnect**: `cap.read()` returns `False`, the loop sleeps 1 s and retries indefinitely.
+- **Segment too short** (`< MIN_SEGMENT_SECONDS`): discarded as noise before dispatch.
+- **Segment too large** (`> MAX_SEGMENT_SIZE_BYTES` or `> MAX_EVENT_DURATION_SECONDS`): rotated mid-event; IncidentStateManager stitches the resulting consecutive segments back into one logical incident.
+- **Worker pool full**: `SegmentDispatcher.submit()` blocks until a worker is free (bounded queue).
