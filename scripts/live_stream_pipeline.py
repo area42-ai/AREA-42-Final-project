@@ -107,15 +107,20 @@ def start_stream(args: argparse.Namespace) -> None:
 
     video_id: str = args.video_id
 
-    # Each video_id gets its own output namespace so two instances never collide
-    event_segments_dir = f"data/event_segments/{video_id}"
-    failed_segments_dir = f"data/failed_segments/{video_id}"
-    output_logs_dir = f"data/output_logs/{video_id}"
-    evidence_dir = f"data/evidence/{video_id}"
-    timeline_path = f"data/output_logs/{video_id}/live_incident_timeline.json"
+    # Each video_id gets its own output namespace so two instances never collide.
+    # Paths are anchored to REPO_ROOT so they resolve correctly regardless of
+    # the process CWD (e.g. when launched as a subprocess by the API server).
+    event_segments_dir = REPO_ROOT / "data" / "event_segments" / video_id
+    failed_segments_dir = REPO_ROOT / "data" / "failed_segments" / video_id
+    output_logs_dir = REPO_ROOT / "data" / "output_logs" / video_id
+    evidence_dir = REPO_ROOT / "data" / "evidence" / video_id
+    timeline_path = REPO_ROOT / "data" / "output_logs" / video_id / "live_incident_timeline.json"
 
     logger.info("Connecting to camera source: %s  (video_id=%s)", camera_source, video_id)
-    cap = cv2.VideoCapture(camera_source)
+    # Use DirectShow on Windows for local webcams — MSMF backend fails to grab frames
+    # in subprocess contexts even when isOpened() returns True.
+    backend = cv2.CAP_DSHOW if isinstance(camera_source, int) else cv2.CAP_ANY
+    cap = cv2.VideoCapture(camera_source, backend)
 
     if not cap.isOpened():
         logger.error(

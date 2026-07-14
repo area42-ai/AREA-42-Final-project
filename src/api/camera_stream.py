@@ -106,6 +106,18 @@ def _capture_loop(camera_id: int) -> None:
     cap.release()
 
 
+def release_camera(camera_id: int) -> None:
+    """Release a camera capture so an external process can open it.
+
+    The background capture thread exits naturally once cap.isOpened() returns
+    False. The next /api/stream/<id> request will re-open the camera via
+    _ensure_capture_thread.
+    """
+    cap = _camera_captures.pop(camera_id, None)
+    if cap is not None:
+        cap.release()
+
+
 def _ensure_capture_thread(camera_id: int) -> None:
     """Start a background capture thread for *camera_id* if not already running."""
     if camera_id in _camera_threads and _camera_threads[camera_id].is_alive():
