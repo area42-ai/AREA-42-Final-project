@@ -279,7 +279,7 @@ def start_live_monitoring():
             "error": "Monitoring is already running."
         })
 
-    script_path = "live_stream_pipeline.py"
+    script_path = REPO_ROOT / "scripts" / "live_stream_pipeline.py"
 
     try:
         LIVE_PIPELINE_PROCESS = subprocess.Popen(
