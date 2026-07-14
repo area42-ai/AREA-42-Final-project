@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 
+LIVE_PIPELINE_PROCESS = None
+
 # Load environment variables
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
@@ -135,7 +137,7 @@ def analyze_video():
     if is_live:
         try:
             # Prepare commands and run pipeline script
-            script_path = REPO_ROOT / "scripts" / "run_pipeline_a.py"
+            script_path = "run_pipeline_a.py"
             cmd = [
                 sys.executable,
                 str(script_path),
@@ -264,6 +266,59 @@ def analyze_video():
             "mode": "simulated",
             "data": envelope
         })
+    
+
+@app.route("/api/live/start", methods=["POST"])
+def start_live_monitoring():
+    global LIVE_PIPELINE_PROCESS
+
+    # Already running?
+    if LIVE_PIPELINE_PROCESS and LIVE_PIPELINE_PROCESS.poll() is None:
+        return jsonify({
+            "success": False,
+            "error": "Monitoring is already running."
+        })
+
+    script_path = "live_stream_pipeline.py"
+
+    try:
+        LIVE_PIPELINE_PROCESS = subprocess.Popen(
+            [
+                sys.executable,
+                str(script_path)
+            ],
+            cwd=REPO_ROOT / "scripts"
+        )
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/live/stop", methods=["POST"])
+def stop_live_monitoring():
+    global LIVE_PIPELINE_PROCESS
+
+    try:
+        if LIVE_PIPELINE_PROCESS and LIVE_PIPELINE_PROCESS.poll() is None:
+            LIVE_PIPELINE_PROCESS.terminate()
+            LIVE_PIPELINE_PROCESS.wait(timeout=5)
+
+        LIVE_PIPELINE_PROCESS = None
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
