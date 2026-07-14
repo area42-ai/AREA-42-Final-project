@@ -5,7 +5,7 @@ import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, abort
 
 LIVE_PIPELINE_PROCESS = None
 
@@ -269,6 +269,27 @@ def analyze_video():
         })
     
 
+def _resolve_evidence_url(inc: dict) -> str:
+    """Return a /data/... URL for the first existing evidence file in an incident, or ''."""
+    candidates = [inc.get("start_evidence_frame"), inc.get("last_seen_violation_frame")]
+    for ev in inc.get("evidence", []):
+        if isinstance(ev, dict):
+            candidates.append(ev.get("path") or ev.get("frame_path"))
+    for c in candidates:
+        if not c:
+            continue
+        p = Path(c)
+        if not p.is_absolute():
+            p = REPO_ROOT / p
+        if p.exists():
+            try:
+                rel = p.relative_to(REPO_ROOT / "data")
+                return "/data/" + str(rel).replace("\\", "/")
+            except ValueError:
+                pass
+    return ""
+
+
 @app.route("/api/alerts")
 def get_alerts():
     alerts = []
@@ -279,21 +300,53 @@ def get_alerts():
                 doc = json.loads(timeline_file.read_text(encoding="utf-8"))
                 mtime = datetime.fromtimestamp(timeline_file.stat().st_mtime).isoformat()
                 for inc in doc.get("incidents", []):
+                    missing_items = inc.get("violated_items") or (
+                        [inc["ppe_item"]] if inc.get("ppe_item") else []
+                    )
                     alerts.append({
                         "id": inc.get("incident_id", ""),
-                        "timestamp": mtime,
+                        "timestamp": inc.get("start_seconds") and mtime or mtime,
                         "description": (
-                            f"{inc.get('ppe_item', 'PPE')} violation detected. "
+                            f"{', '.join(missing_items) or 'PPE'} violation detected. "
                             f"{inc.get('worker_description', '')}".strip()
                         ),
-                        "image_path": "",
-                        "violators_details": [{"person_id": 1, "missing": [inc.get("ppe_item", "")]}],
-                        "confidence": 0.9,
+                        "image_path": _resolve_evidence_url(inc),
+                        "violators_details": [{"person_id": inc.get("person_id", 1), "missing": missing_items}],
+                        "confidence": inc.get("confidence", 0.9),
                     })
             except Exception:
                 continue
     alerts.sort(key=lambda a: a["timestamp"], reverse=True)
     return jsonify(alerts)
+
+
+@app.route("/api/recordings")
+def list_recordings():
+    segs_root = REPO_ROOT / "data" / "event_segments"
+    recordings = []
+    if segs_root.exists():
+        for f in sorted(segs_root.rglob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
+            try:
+                rel = str(f.relative_to(REPO_ROOT / "data")).replace("\\", "/")
+                recordings.append({
+                    "filename": f.name,
+                    "path": rel,
+                    "url": "/data/" + rel,
+                    "size": f.stat().st_size,
+                    "duration": 0,
+                    "timestamp": datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
+                })
+            except Exception:
+                continue
+    return jsonify(recordings)
+
+
+@app.route("/data/<path:filename>")
+def serve_data_file(filename):
+    safe = REPO_ROOT / "data" / filename
+    if not safe.resolve().is_relative_to((REPO_ROOT / "data").resolve()):
+        abort(403)
+    return send_from_directory(str(REPO_ROOT / "data"), filename)
 
 
 @app.route("/api/live/start", methods=["POST"])
