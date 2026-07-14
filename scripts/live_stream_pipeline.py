@@ -115,7 +115,10 @@ def start_stream(args: argparse.Namespace) -> None:
     timeline_path = f"data/output_logs/{video_id}/live_incident_timeline.json"
 
     logger.info("Connecting to camera source: %s  (video_id=%s)", camera_source, video_id)
-    cap = cv2.VideoCapture(camera_source)
+    # Use DirectShow on Windows for local webcams — MSMF backend fails to grab frames
+    # in subprocess contexts even when isOpened() returns True.
+    backend = cv2.CAP_DSHOW if isinstance(camera_source, int) else cv2.CAP_ANY
+    cap = cv2.VideoCapture(camera_source, backend)
 
     if not cap.isOpened():
         logger.error(
