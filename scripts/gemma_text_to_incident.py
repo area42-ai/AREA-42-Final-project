@@ -17,6 +17,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from openai import OpenAI
 
 from dotenv import load_dotenv
 
@@ -40,7 +41,7 @@ else:
 
 load_dotenv()
 
-DEFAULT_MODEL = "gemma-4-26b-a4b-it"
+DEFAULT_MODEL = "mistralai/mistral-small-4-119b-2603"
 
 
 def build_prompt(summary_text: str, ppe_items: list[str]) -> str:
@@ -148,7 +149,7 @@ def parse_arguments() -> argparse.Namespace:
 def resolve_model(cli_model: str | None) -> str:
     if cli_model:
         return cli_model
-    return os.getenv("GOOGLE_GEMMA_MODEL", DEFAULT_MODEL)
+    return os.getenv("NVIDIA_GEMMA_MODEL", DEFAULT_MODEL)
 
 
 def load_summary_text(input_path: Path) -> str:
@@ -237,12 +238,38 @@ def save_diagnostic(
     return path
 
 
-def call_gemma(model: str, api_key: str, prompt: str) -> str:
-    from google import genai
+#  def call_gemma(model: str, api_key: str, prompt: str) -> str:
+#     from google import genai
 
-    client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(model=model, contents=[prompt])
-    return response.text or ""
+#     client = genai.Client(api_key=api_key)
+#     response = client.models.generate_content(model=model, contents=[prompt])
+#     return response.text or ""
+
+from openai import OpenAI
+
+
+def call_gemma(model: str, api_key: str, prompt: str) -> str:
+
+    client = OpenAI(
+        base_url="https://integrate.api.nvidia.com/v1",
+        api_key=api_key,
+        timeout=120,
+    )
+
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        temperature=0.1,
+        max_tokens=4096,
+        stream=False,
+    )
+
+    return completion.choices[0].message.content or ""
 
 
 def main() -> None:
@@ -256,9 +283,9 @@ def main() -> None:
     # Fail clearly before any API request if the summary is missing/empty.
     summary_text = load_summary_text(input_path)
 
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("NVIDIA_API_KEY")
     if not api_key:
-        raise RuntimeError("GOOGLE_API_KEY environment variable not found.")
+        raise RuntimeError("NVIDIA_API_KEY environment variable not found.")
 
     prompt = build_prompt(summary_text, ppe_items)
     model_text = call_gemma(model, api_key, prompt)
