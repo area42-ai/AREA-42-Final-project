@@ -203,7 +203,8 @@ AREA-42-Final-project/
 │   ├── incident_state_manager.py  # Cross-segment incident continuity
 │   ├── evidence_manager.py        # Keyframe evidence storage
 │   ├── telegram_notifier.py       # Telegram alerts
-│   └── send_notification_bot.py   # Standalone notification sender
+│   ├── send_notification_bot.py   # Standalone notification sender
+│   └── video_frame_pipeline.py    # Frame-by-frame Llama Vision pipeline (offline / alt)
 ├── src/api/               # FastAPI backend
 │   ├── main.py            # App factory + all endpoints
 │   ├── server.py          # Uvicorn entry point
@@ -212,10 +213,17 @@ AREA-42-Final-project/
 │   ├── index.html
 │   ├── app.js
 │   └── style.css
+├── docs/                  # Architecture, decisions, model research
+│   ├── DECISIONS.md           # Design decisions log
+│   ├── MEETING_LOG.md         # Meeting notes
+│   ├── model_benchmark.md     # VLM benchmark results
+│   ├── model_research/        # Model feasibility studies
+│   └── ARCHITECTURE.md        # System architecture
+├── tests/                 # Offline test suite
+│   └── test_ppe_pipelines.py  # 14 self-contained PPE pipeline tests
 ├── data/                  # Local data (git-ignored except READMEs)
 ├── outputs/               # Pipeline outputs (git-ignored)
 ├── assets/                # Branding
-├── tests/                 # Test suite
 ├── .env.example           # Environment variable template
 ├── requirements.txt
 └── start.bat              # Windows one-click launcher
@@ -241,7 +249,7 @@ AREA-42-Final-project/
 
 A manually annotated PPE video evaluation set (10 scenarios) is maintained in Google Drive, covering always-compliant, always-violating, helmet removal/replacement, two workers with mixed compliance, occlusion, low light, and difficult angles.
 
-Dataset access: available on request (Google Drive).
+See [`data/README.md`](data/README.md) for dataset metadata, reproducibility info, class list, and the Google Drive link.
 
 ---
 
