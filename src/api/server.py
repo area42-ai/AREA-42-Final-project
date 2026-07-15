@@ -93,6 +93,11 @@ def serve_branding(filename):
     return send_from_directory(str(REPO_ROOT / "assets" / "branding"), filename)
 
 
+@app.route("/data/<path:filename>")
+def serve_data_file(filename):
+    return send_from_directory(str(REPO_ROOT / "data"), filename)
+
+
 @app.route("/api/videos", methods=["GET"])
 def list_videos():
     try:
