@@ -36,8 +36,6 @@ Built by AREA-42 as an event-driven pipeline: webcam/RTSP feed → perception ga
 | Telegram notifications | ✅ Done | Instant alerts with evidence |
 | FastAPI backend | ✅ Done | `/api/cameras`, `/api/incidents`, `/api/settings/language` |
 | Web dashboard (frontend) | ✅ Done | Vanilla JS, `frontend/` |
-| Multi-person tracking | 📋 Planned | Stable person IDs across frames |
-| Production deployment | 📋 Planned | Docker, HTTPS, auth |
 
 ---
 
@@ -88,7 +86,7 @@ python scripts/run_pipeline_a.py \
 Put your video in `data/test/` first. On success, prints the path to the final incident JSON.
 
 Optional flags:
-- `--ppe-items hard_hat,safety_vest,safety_glasses,gloves` — limit PPE scope
+- `--ppe-items hard_hat,safety_vest,safety_glasses` — limit PPE scope
 - `--model <gemma-model>` — override the Gemma model for Stage 2
 
 ### Option B — Live stream (webcam or RTSP)
@@ -111,13 +109,9 @@ Press `Ctrl+C` to stop. The final timeline is saved to `data/output_logs/<video-
 # Windows: double-click or run
 start.bat
 
-# Manual (two terminals)
-# Terminal 1 — backend
+# Manual
 python src/api/server.py
-
-# Terminal 2 — frontend
-cd frontend && python -m http.server 5500
-# Open http://localhost:5500 in your browser
+# Open http://127.0.0.1:8000 in your browser
 ```
 
 ---
@@ -247,7 +241,7 @@ AREA-42-Final-project/
 
 A manually annotated PPE video evaluation set (10 scenarios) is maintained in Google Drive, covering always-compliant, always-violating, helmet removal/replacement, two workers with mixed compliance, occlusion, low light, and difficult angles.
 
-Dataset access: [`data/README.md`](data/README.md)
+Dataset access: available on request (Google Drive).
 
 ---
 
