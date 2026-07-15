@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/NVIDIA-Nemotron_VLM-76b900?style=flat-square&logo=nvidia&logoColor=white" alt="NVIDIA">
   <img src="https://img.shields.io/badge/Google-Gemma-4285F4?style=flat-square&logo=google&logoColor=white" alt="Google">
   <img src="https://img.shields.io/badge/License-MIT-orange?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/Status-Active_Development-brightgreen?style=flat-square" alt="Status">
+  <img src="https://img.shields.io/badge/Status-Complete-success?style=flat-square" alt="Status">
 </p>
 
 ---
@@ -27,8 +27,8 @@ Built by AREA-42 as an event-driven pipeline: webcam/RTSP feed → perception ga
 |---|---|---|
 | Frame extraction from video | ✅ Done | OpenCV, configurable FPS |
 | NVIDIA Nemotron VLM inference | ✅ Done | Whole-video temporal summary via API |
-| PPE detection (hard hat, vest, glasses, gloves) | ✅ Done | All four classes |
-| Multi-worker attribution | ✅ Done | Violations attached per visible worker |
+| PPE detection (hard hat, vest, glasses) | ✅ Done | Three classes |
+| Multi-worker attribution | ✅ Done | Worker description per incident; `person_id` is null (no visual tracking) |
 | Temporal incident confirmation | ✅ Done | Configurable pre/post-roll, min duration |
 | Evidence capture (keyframes + JSON) | ✅ Done | Saved to `data/evidence/` |
 | Gemma incident extraction (Stage 2) | ✅ Done | Plain-text summary → normalized JSON |
@@ -153,8 +153,6 @@ Webcam / RTSP / Video file
                         FastAPI Backend  ──►  Web Dashboard
 ```
 
-Full architecture details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-
 ---
 
 ## Incident JSON Contract
@@ -166,22 +164,31 @@ Every confirmed incident follows a shared schema (`scripts/incident_contract.py`
   "schema_version": "1.0",
   "video_id": "worker_removes_helmet",
   "source_pipeline": "nemotron_gemma",
-  "models": ["nemotron", "gemma-4-26b-a4b-it"],
-  "analysis_scope": ["hard_hat", "safety_vest", "safety_glasses", "gloves"],
+  "models": ["nvidia/nemotron-...", "gemma-4-26b-a4b-it"],
+  "analysis_scope": ["hard_hat", "safety_vest", "safety_glasses"],
   "incident_detected": true,
   "incidents": [
     {
-      "incident_id": "...",
-      "ppe_item": "hard_hat",
-      "worker_description": "...",
-      "start_time": 12.0,
-      "end_time": 34.5,
+      "incident_id": "incident_001",
+      "person_id": null,
+      "status": "resolved",
+      "start_seconds": 12.0,
+      "end_seconds": 34.5,
       "duration_seconds": 22.5,
-      "severity": "high"
+      "minimum_confirmed_duration_seconds": null,
+      "violated_items": ["hard_hat"],
+      "ppe_status": {
+        "hard_hat": "missing",
+        "safety_vest": "present",
+        "safety_glasses": "present"
+      },
+      "confidence": 0.85,
+      "action_sequence": [],
+      "evidence": []
     }
   ],
   "summary": "Worker removed hard hat at 12s and did not replace it.",
-  "quality": { "parse_success": true, "warnings": [] }
+  "quality": { "parse_success": true, "planned_frames": null, "analyzed_frames": null, "status_counts": {}, "warnings": [] }
 }
 ```
 
@@ -211,10 +218,8 @@ AREA-42-Final-project/
 │   ├── index.html
 │   ├── app.js
 │   └── style.css
-├── docs/                  # Project documentation
 ├── data/                  # Local data (git-ignored except READMEs)
 ├── outputs/               # Pipeline outputs (git-ignored)
-├── configs/               # Runtime configuration
 ├── assets/                # Branding
 ├── tests/                 # Test suite
 ├── .env.example           # Environment variable template
@@ -229,11 +234,12 @@ AREA-42-Final-project/
 | Variable | Required | Description |
 |---|---|---|
 | `NVIDIA_API_KEY` | ✅ | NVIDIA build API key (Nemotron, Stage 1) |
+| `NVIDIA_API_URL` | ✅ | NVIDIA inference endpoint (set in `.env.example`) |
 | `GOOGLE_API_KEY` | ✅ | Google AI Studio key (Gemma, Stage 2) |
 | `TELEGRAM_BOT_TOKEN` | Optional | Telegram bot token for alerts |
 | `TELEGRAM_CHAT_ID` | Optional | Chat/channel ID to send alerts to |
-| `CAMERA_SOURCE` | Optional | Default camera: `0` (webcam) or RTSP URL |
 | `NVIDIA_NEMOTRON_MODEL` | Optional | Override Nemotron model name |
+| `GOOGLE_GEMMA_MODEL` | Optional | Override Gemma model (default: `gemma-4-26b-a4b-it`) |
 
 ---
 
@@ -242,20 +248,6 @@ AREA-42-Final-project/
 A manually annotated PPE video evaluation set (10 scenarios) is maintained in Google Drive, covering always-compliant, always-violating, helmet removal/replacement, two workers with mixed compliance, occlusion, low light, and difficult angles.
 
 Dataset access: [`data/README.md`](data/README.md)
-
----
-
-## Documentation
-
-| Document | Purpose |
-|---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Full pipeline design and component reference |
-| [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) | Product scope and confirmed decisions |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Official decision log |
-| [`docs/AI_WORKFLOW.md`](docs/AI_WORKFLOW.md) | How AI tools are used in this project |
-| [`docs/ASSET_POLICY.md`](docs/ASSET_POLICY.md) | What is and isn't committed to Git |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to contribute |
-| [`AGENTS.md`](AGENTS.md) | Instructions for AI coding agents |
 
 ---
 
