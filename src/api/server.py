@@ -1,13 +1,16 @@
 import os
 import sys
 import json
-import subprocess
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
+import numpy as np
+import cv2
 from flask import Flask, request, jsonify, send_from_directory
 
-LIVE_PIPELINE_PROCESS = None
+_PIPELINE_THREADS: dict[int, threading.Thread] = {}
+_PIPELINE_STOP_EVENTS: dict[int, threading.Event] = {}
 
 # Load environment variables
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -63,7 +66,7 @@ FRONTEND_DIR = REPO_ROOT / "frontend"
 app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
 
 # Register camera streaming blueprint
-from camera_stream import camera_bp, release_camera
+from camera_stream import camera_bp, _camera_frames, _camera_locks
 app.register_blueprint(camera_bp)
 
 # Ensure data directory exists
@@ -316,59 +319,67 @@ def get_alerts():
 
 @app.route("/api/live/start", methods=["POST"])
 def start_live_monitoring():
-    global LIVE_PIPELINE_PROCESS
+    import argparse
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    from live_stream_pipeline import start_stream_from_getter
 
-    # Already running?
-    if LIVE_PIPELINE_PROCESS and LIVE_PIPELINE_PROCESS.poll() is None:
-        return jsonify({
-            "success": False,
-            "error": "Monitoring is already running."
-        })
+    data = request.get_json(silent=True) or {}
+    camera_ids: list[int] = data.get("camera_ids") or [0]
 
-    script_path = REPO_ROOT / "scripts" / "live_stream_pipeline.py"
+    def _make_getter(cid: int):
+        def getter():
+            lock = _camera_locks.get(cid)
+            if lock is None:
+                return None
+            with lock:
+                jpeg = _camera_frames.get(cid)
+            if jpeg is None:
+                return None
+            arr = np.frombuffer(jpeg, np.uint8)
+            return cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        return getter
 
-    # Release the browser preview capture so the pipeline subprocess can open the camera.
-    # The preview will restart automatically on the next /api/stream/<id> request.
-    cam_raw = os.getenv("CAMERA_SOURCE", "0")
-    if str(cam_raw).isdigit():
-        release_camera(int(cam_raw))
+    started = []
+    for cam_id in camera_ids:
+        if cam_id in _PIPELINE_THREADS and _PIPELINE_THREADS[cam_id].is_alive():
+            continue
 
-    try:
-        LIVE_PIPELINE_PROCESS = subprocess.Popen(
-            [
-                sys.executable,
-                str(script_path)
-            ],
-            cwd=REPO_ROOT
+        stop_event = threading.Event()
+        _PIPELINE_STOP_EVENTS[cam_id] = stop_event
+
+        args = argparse.Namespace(
+            camera=str(cam_id),
+            video_id=f"live_stream_{cam_id}",
+            camera_name=f"Camera-{cam_id + 1}",
         )
+        getter = _make_getter(cam_id)
 
-        return jsonify({"success": True})
+        def _run(a=args, g=getter, se=stop_event):
+            try:
+                start_stream_from_getter(a, g, se)
+            except Exception as exc:
+                app.logger.error("Pipeline thread error: %s", exc, exc_info=True)
 
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        t = threading.Thread(target=_run, daemon=True)
+        _PIPELINE_THREADS[cam_id] = t
+        t.start()
+        started.append(cam_id)
+
+    return jsonify({"success": True, "started": started})
 
 
 @app.route("/api/live/stop", methods=["POST"])
 def stop_live_monitoring():
-    global LIVE_PIPELINE_PROCESS
+    for ev in _PIPELINE_STOP_EVENTS.values():
+        ev.set()
 
-    try:
-        if LIVE_PIPELINE_PROCESS and LIVE_PIPELINE_PROCESS.poll() is None:
-            LIVE_PIPELINE_PROCESS.terminate()
-            LIVE_PIPELINE_PROCESS.wait(timeout=5)
+    for t in _PIPELINE_THREADS.values():
+        t.join(timeout=3)
 
-        LIVE_PIPELINE_PROCESS = None
+    _PIPELINE_THREADS.clear()
+    _PIPELINE_STOP_EVENTS.clear()
 
-        return jsonify({"success": True})
-
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+    return jsonify({"success": True})
 
 
 

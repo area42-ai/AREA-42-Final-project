@@ -700,7 +700,12 @@ window.toggleMonitoring = async function () {
     } else {
         // Start AI monitoring
         try {
-            const response = await fetch("/api/live/start", { method: "POST" });
+            const cameraIds = [...state.selectedCameraIds];
+            const response = await fetch("/api/live/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ camera_ids: cameraIds }),
+            });
             const result = await response.json();
             if (result.success) {
                 state.isMonitoring = true;
