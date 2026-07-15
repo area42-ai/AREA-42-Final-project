@@ -284,16 +284,29 @@ def get_alerts():
                 doc = json.loads(timeline_file.read_text(encoding="utf-8"))
                 mtime = datetime.fromtimestamp(timeline_file.stat().st_mtime).isoformat()
                 for inc in doc.get("incidents", []):
+                    violated = inc.get("violated_items") or (
+                        [inc["ppe_item"]] if inc.get("ppe_item") else ["PPE"]
+                    )
+                    image_path = ""
+                    for ev in inc.get("evidence", []):
+                        ev_path = ev.get("path", "")
+                        if ev_path:
+                            try:
+                                rel = Path(ev_path).relative_to(REPO_ROOT / "data")
+                                image_path = f"/data/{rel.as_posix()}"
+                            except ValueError:
+                                pass
+                            break
                     alerts.append({
                         "id": inc.get("incident_id", ""),
                         "timestamp": mtime,
                         "description": (
-                            f"{inc.get('ppe_item', 'PPE')} violation detected. "
-                            f"{inc.get('worker_description', '')}".strip()
+                            f"Missing: {', '.join(violated)}. "
+                            f"{inc.get('worker', '')}".strip(". ")
                         ),
-                        "image_path": "",
-                        "violators_details": [{"person_id": 1, "missing": [inc.get("ppe_item", "")]}],
-                        "confidence": 0.9,
+                        "image_path": image_path,
+                        "violators_details": [{"person_id": 1, "missing": violated}],
+                        "confidence": inc.get("confidence", 0.9),
                     })
             except Exception:
                 continue
