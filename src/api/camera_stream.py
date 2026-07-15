@@ -27,6 +27,7 @@ _camera_captures: dict[int, cv2.VideoCapture] = {}
 _camera_frames: dict[int, bytes | None] = {}
 _camera_threads: dict[int, threading.Thread] = {}
 
+
 MAX_CAMERA_PROBE = 5  # try indices 0..4 during enumeration
 
 
@@ -98,7 +99,7 @@ def _capture_loop(camera_id: int) -> None:
         if not ok:
             time.sleep(0.05)
             continue
-        _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
         with _camera_locks[camera_id]:
             _camera_frames[camera_id] = jpeg.tobytes()
         time.sleep(0.03)  # ~30 fps cap

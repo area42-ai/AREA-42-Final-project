@@ -24,6 +24,12 @@ import cv2
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from active_buffer_manager import FinalizedSegment
 
+try:
+    from yolo_detector import annotate_frame as _yolo_annotate
+    _YOLO_AVAILABLE = True
+except Exception:
+    _YOLO_AVAILABLE = False
+
 
 class EvidenceManager:
     def __init__(self, evidence_dir: str | Path) -> None:
@@ -124,7 +130,8 @@ class EvidenceManager:
             if str(out_path) in existing_paths:
                 continue
 
-            cv2.imwrite(str(out_path), frame)
+            save_frame = _yolo_annotate(frame) if _YOLO_AVAILABLE else frame
+            cv2.imwrite(str(out_path), save_frame)
             incident.setdefault("evidence", []).append(
                 {
                     "type": label,
