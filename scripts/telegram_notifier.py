@@ -21,7 +21,6 @@ _PPE_DISPLAY = {
     "hard_hat": "Hard hat",
     "safety_vest": "Safety vest",
     "safety_glasses": "Safety glasses",
-    "gloves": "Gloves",
 }
 _OPEN_STATUSES = {"open", "unresolved", "unresolved_after_last_confirmed_violation"}
 

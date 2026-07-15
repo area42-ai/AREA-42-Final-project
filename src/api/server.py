@@ -25,7 +25,7 @@ try:
     )
 except ImportError:
     # Inline fallback implementations of contract schema
-    PPE_ITEMS = ("hard_hat", "safety_vest", "safety_glasses", "gloves")
+    PPE_ITEMS = ("hard_hat", "safety_vest", "safety_glasses")
     STATUS_RESOLVED = "resolved"
     STATUS_UNRESOLVED = "unresolved_after_last_confirmed_violation"
     
@@ -83,6 +83,11 @@ def add_cors_headers(response):
 @app.route("/")
 def serve_frontend():
     return send_from_directory(str(FRONTEND_DIR), "index.html")
+
+
+@app.route("/assets/branding/<path:filename>")
+def serve_branding(filename):
+    return send_from_directory(str(REPO_ROOT / "assets" / "branding"), filename)
 
 
 @app.route("/api/videos", methods=["GET"])

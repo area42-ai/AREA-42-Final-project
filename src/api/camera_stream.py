@@ -27,6 +27,11 @@ _camera_captures: dict[int, cv2.VideoCapture] = {}
 _camera_frames: dict[int, bytes | None] = {}
 _camera_threads: dict[int, threading.Thread] = {}
 
+# YOLO annotation state: last annotated frame and frame counter per camera
+_yolo_last_annotated: dict[int, bytes | None] = {}
+_yolo_counters: dict[int, int] = {}
+_YOLO_EVERY_N = 4  # run YOLO inference every N frames
+
 MAX_CAMERA_PROBE = 5  # try indices 0..4 during enumeration
 
 
@@ -93,14 +98,37 @@ def _capture_loop(camera_id: int) -> None:
 
     _camera_captures[camera_id] = cap
 
+    try:
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
+        from yolo_detector import annotate_frame as _yolo_annotate
+        _yolo_available = True
+    except Exception:
+        _yolo_available = False
+        _yolo_annotate = None
+
+    _yolo_counters[camera_id] = 0
+    _yolo_last_annotated[camera_id] = None
+
     while cap.isOpened():
         ok, frame = cap.read()
         if not ok:
             time.sleep(0.05)
             continue
-        _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+
+        # Annotate every N-th frame with YOLO for the browser MJPEG stream
+        _yolo_counters[camera_id] = (_yolo_counters[camera_id] + 1) % _YOLO_EVERY_N
+        if _yolo_available and _yolo_counters[camera_id] == 0:
+            annotated = _yolo_annotate(frame)
+            _, jpeg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 75])
+            _yolo_last_annotated[camera_id] = jpeg.tobytes()
+        elif _yolo_last_annotated.get(camera_id) is None:
+            _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            _yolo_last_annotated[camera_id] = jpeg.tobytes()
+
         with _camera_locks[camera_id]:
-            _camera_frames[camera_id] = jpeg.tobytes()
+            _camera_frames[camera_id] = _yolo_last_annotated[camera_id]
         time.sleep(0.03)  # ~30 fps cap
 
     cap.release()

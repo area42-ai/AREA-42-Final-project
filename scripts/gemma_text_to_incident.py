@@ -63,9 +63,6 @@ Rules:
 - Allowed status values: present, missing, unknown, not_applicable.
 - If visibility is not stated for an item, treat it as unknown - NOT missing.
 - Only include an item in violated_items when it is clearly missing.
-- For gloves specifically, only include "gloves" if the summary explicitly
-  says that at least one hand is visible while gloves are absent. No visible
-  hand means unknown, never a gloves violation.
 - Times are numeric seconds (floats). Convert mm:ss to seconds.
 - start_seconds is when the FIRST violation for this person began.
 - If the person became fully compliant, set end_seconds to that time.

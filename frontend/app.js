@@ -12,7 +12,6 @@ const TRANSLATIONS = {
         "ppe.helmet": "Hard Hat Protection",
         "ppe.vest": "High-Vis Vest",
         "ppe.glasses": "Safety Glasses",
-        "ppe.gloves": "Gloves",
         "stats.safetyRate": "Safety Rate",
         "stats.personnel": "Active Personnel",
         "stats.violations": "PPE Violations",
@@ -64,7 +63,6 @@ const TRANSLATIONS = {
         "ppe.helmet": "Защитная каска",
         "ppe.vest": "Сигнальный жилет",
         "ppe.glasses": "Защитные очки",
-        "ppe.gloves": "Перчатки",
         "stats.safetyRate": "Соответствие",
         "stats.personnel": "Персонал",
         "stats.violations": "Нарушения",
@@ -116,7 +114,6 @@ const TRANSLATIONS = {
         "ppe.helmet": "Qoruyucu dəbilqə",
         "ppe.vest": "Siqnal jimki",
         "ppe.glasses": "Qoruyucu eynək",
-        "ppe.gloves": "Əlcəklər",
         "stats.safetyRate": "Uyğunluq",
         "stats.personnel": "Personal",
         "stats.violations": "Pozuntular",
@@ -192,7 +189,6 @@ const state = {
         require_helmet: true,
         require_vest: true,
         require_goggles: true,
-        require_gloves: false,
     },
     isBackendConnected: false,
     localAlerts: [],
@@ -228,7 +224,6 @@ const elements = {
     reqHelmet: document.getElementById('req-helmet'),
     reqVest: document.getElementById('req-vest'),
     reqGoggles: document.getElementById('req-goggles'),
-    reqGloves: document.getElementById('req-gloves'),
     liveAlertFeed: document.getElementById('live-alert-feed'),
     recordingsGrid: document.getElementById('recordings-grid'),
     alertsGrid: document.getElementById('alerts-grid'),
@@ -530,11 +525,10 @@ function syncSettingsState() {
     state.settings.require_helmet = elements.reqHelmet.checked;
     state.settings.require_vest = elements.reqVest.checked;
     state.settings.require_goggles = elements.reqGoggles.checked;
-    state.settings.require_gloves = elements.reqGloves ? elements.reqGloves.checked : false;
 }
 
 function setupControlsListeners() {
-    [elements.reqHelmet, elements.reqVest, elements.reqGoggles, elements.reqGloves].filter(Boolean).forEach(input => {
+    [elements.reqHelmet, elements.reqVest, elements.reqGoggles].filter(Boolean).forEach(input => {
         if (input) input.addEventListener('change', () => {
             syncSettingsState();
             showToast(t('toast.settingsUpdated'), "warning");

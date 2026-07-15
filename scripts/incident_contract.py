@@ -26,7 +26,6 @@ PPE_ITEMS: tuple[str, ...] = (
     "hard_hat",
     "safety_vest",
     "safety_glasses",
-    "gloves",
 )
 
 PPE_STATUSES: tuple[str, ...] = (
