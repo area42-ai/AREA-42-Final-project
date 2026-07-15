@@ -15,10 +15,11 @@
     <aside class="sidebar" id="sidebar">
         <div class="logo-section">
             <div class="logo-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                    <line x1="12" y1="9" x2="12" y2="13"/>
-                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                    <line x1="12" y1="2" x2="12" y2="4"/>
+                    <line x1="12" y1="20" x2="12" y2="22"/>
                 </svg>
             </div>
             <div class="logo-text">
@@ -75,6 +76,11 @@
                     <input type="checkbox" id="req-goggles" checked>
                     <span class="control-indicator"></span>
                 </label>
+                <label class="toggle-control">
+                    <span class="toggle-label" data-i18n="ppe.gloves">Gloves</span>
+                    <input type="checkbox" id="req-gloves">
+                    <span class="control-indicator"></span>
+                </label>
             </div>
         </div>
 
@@ -94,22 +100,6 @@
                 <div class="system-status-indicator" id="system-status-indicator">
                     <span class="status-dot green" id="system-status-dot"></span>
                     <span class="status-text" id="system-status-text">INITIALIZING</span>
-                </div>
-            </div>
-
-            <!-- Live Dashboard Quick Metrics -->
-            <div class="quick-stats">
-                <div class="stat-badge">
-                    <span class="stat-lbl" data-i18n="stats.safetyRate">Safety Rate</span>
-                    <span class="stat-val green" id="metric-safety-rate">100%</span>
-                </div>
-                <div class="stat-badge">
-                    <span class="stat-lbl" data-i18n="stats.personnel">Active Personnel</span>
-                    <span class="stat-val" id="metric-active-personnel">0</span>
-                </div>
-                <div class="stat-badge">
-                    <span class="stat-lbl" data-i18n="stats.violations">PPE Violations</span>
-                    <span class="stat-val red" id="metric-violations-count">0</span>
                 </div>
             </div>
 
@@ -141,72 +131,45 @@
 
         <!-- VIEW 1: DASHBOARD (LIVE MONITOR) -->
         <section class="app-view active" id="view-dashboard">
-            <div class="dashboard-grid">
+            <div class="dashboard-single-col">
 
-                <!-- Left / center wide column -->
-                <div class="main-viewport-column">
-                    <!-- MULTI-CAMERA GRID -->
-                    <div class="camera-grid" id="camera-grid">
-                        <div class="camera-grid-placeholder" id="camera-grid-placeholder">
-                            <div class="placeholder-spinner"></div>
-                            <h4 data-i18n="camera.detecting">Detecting Cameras...</h4>
-                            <p data-i18n="camera.detectingDesc">Connecting to backend to enumerate available camera devices.</p>
-                        </div>
+                <!-- CAMERA CONTROLS ROW: select-all + stream buttons -->
+                <div class="camera-controls-row" id="camera-selection-bar" style="display:none;">
+                    <div class="cam-sel-left">
+                        <label class="cam-sel-all-label">
+                            <input type="checkbox" id="sel-all-cameras" checked>
+                            <span data-i18n="camera.selectAll">Select All</span>
+                        </label>
+                        <span class="cam-sel-info" id="cam-sel-info"></span>
                     </div>
-
-                    <!-- Control Bar -->
-                    <div class="player-control-bar">
-                        <div class="ctrl-group-left">
-                            <button class="btn btn-orange" id="btn-start-stream">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-size">
-                                    <polygon points="5 3 19 12 5 21 5 3"/>
-                                </svg>
-                                <span data-i18n="btn.startMonitoring">Start Monitoring</span>
-                            </button>
-                            <button class="btn btn-secondary" id="btn-pause-stream" disabled>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-size">
-                                    <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
-                                </svg>
-                                <span data-i18n="btn.stopMonitoring">Stop Monitoring</span>
-                            </button>
-                            <button class="btn btn-secondary" id="btn-upload-trigger">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-size">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                                </svg>
-                                <span data-i18n="btn.uploadVideo">Upload Video</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Hidden elements for video upload flow -->
-                    <input type="file" id="video-file-input" accept="video/*" style="display:none;">
-                    <video id="source-video-element" style="display:none;" loop crossorigin="anonymous" playsinline></video>
-                    <canvas id="camera-canvas" style="display:none;"></canvas>
-
-                    <!-- AI OUTPUT CONSOLE -->
-                    <div class="console-card">
-                        <div class="console-header">
-                            <div class="console-header-left">
-                                <span class="console-bullet red"></span>
-                                <span class="console-bullet yellow"></span>
-                                <span class="console-bullet green"></span>
-                                <span class="console-title">Watch Out // live_pipeline_output</span>
-                            </div>
-                            <div class="console-header-right">
-                                <span class="console-pill" id="console-fps">FPS: --</span>
-                                <span class="console-pill" id="console-latency">Latency: -- ms</span>
-                                <span class="console-pill" id="console-engine">Engine: Nemotron + Gemma</span>
-                            </div>
-                        </div>
-                        <div class="console-terminal-body">
-                            <pre class="console-code" id="console-log-stream">{ "status": "system_idle", "message": "Awaiting active camera stream or video file upload..." }</pre>
-                        </div>
+                    <div class="stream-btns">
+                        <button class="btn btn-orange" id="btn-start-stream">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-size">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                            <span data-i18n="btn.startMonitoring">Start Stream</span>
+                        </button>
+                        <button class="btn btn-secondary" id="btn-pause-stream" disabled>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-size">
+                                <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                            </svg>
+                            <span data-i18n="btn.stopMonitoring">Stop Stream</span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Right sidebar: Hazard Violation Logs -->
-                <div class="hazard-log-sidebar">
-                    <div class="sidebar-card-header">
+                <!-- MULTI-CAMERA GRID -->
+                <div class="camera-grid" id="camera-grid">
+                    <div class="camera-grid-placeholder" id="camera-grid-placeholder">
+                        <div class="placeholder-spinner"></div>
+                        <h4 data-i18n="camera.detecting">Detecting Cameras...</h4>
+                        <p data-i18n="camera.detectingDesc">Connecting to backend to enumerate available camera devices.</p>
+                    </div>
+                </div>
+
+                <!-- VIOLATION LOG (collapsible, below camera) -->
+                <div class="violation-log-panel" id="violation-log-panel">
+                    <div class="violation-log-header" id="violation-log-toggle">
                         <div class="header-main-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="alert-icon-main">
                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -214,10 +177,12 @@
                                 <line x1="12" y1="17" x2="12.01" y2="17"/>
                             </svg>
                             <h3 data-i18n="hazard.title">Hazard Violation Logs</h3>
+                            <span class="violations-badge-count" id="violations-count-badge">0</span>
                         </div>
-                        <span class="violations-badge-count" id="violations-count-badge">0</span>
+                        <svg class="violation-log-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="18 15 12 9 6 15"/>
+                        </svg>
                     </div>
-
                     <div class="violation-list" id="live-alert-feed">
                         <div class="empty-state-card">
                             <div class="empty-icon-wrap">
@@ -231,6 +196,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
         </section>
 

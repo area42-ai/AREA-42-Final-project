@@ -189,7 +189,7 @@ def test_start_uses_first_frame():
 def test_unresolved_duration_null():
     incident = contract.build_incident(
         index=1,
-        ppe_item="gloves",
+        ppe_items=["gloves"],
         start_seconds=1.0,
         end_seconds=None,
         status=contract.STATUS_UNRESOLVED,

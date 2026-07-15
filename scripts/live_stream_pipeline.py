@@ -225,5 +225,114 @@ def start_stream(args: argparse.Namespace) -> None:
         logger.info("Pipeline shut down safely. Final timeline: %s", timeline_path)
 
 
+def start_stream_from_getter(
+    args: argparse.Namespace,
+    frame_getter,
+    stop_event: "threading.Event",
+) -> None:
+    """Same pipeline as start_stream() but reads frames from frame_getter() instead of
+    opening a camera device.  frame_getter() must return an np.ndarray or None.
+    stop_event signals a clean shutdown (set by /api/live/stop).
+    """
+    import threading  # local import keeps top-level imports unchanged
+
+    video_id: str = args.video_id
+
+    event_segments_dir = REPO_ROOT / "data" / "event_segments" / video_id
+    failed_segments_dir = REPO_ROOT / "data" / "failed_segments" / video_id
+    output_logs_dir = REPO_ROOT / "data" / "output_logs" / video_id
+    evidence_dir = REPO_ROOT / "data" / "evidence" / video_id
+    timeline_path = REPO_ROOT / "data" / "output_logs" / video_id / "live_incident_timeline.json"
+
+    logger.info("Pipeline thread starting (frame_getter mode, video_id=%s)", video_id)
+
+    perception = PerceptionLayer()
+    buffer_manager = ActiveBufferManager(
+        output_dir=event_segments_dir,
+        fps=TARGET_FPS,
+        resolution=RESOLUTION,
+        pre_roll_seconds=PRE_ROLL_SECONDS,
+        post_roll_seconds=POST_ROLL_SECONDS,
+        min_segment_seconds=MIN_SEGMENT_SECONDS,
+        max_event_duration_seconds=MAX_EVENT_DURATION_SECONDS,
+        max_segment_size_bytes=MAX_SEGMENT_SIZE_BYTES,
+    )
+    state_manager = IncidentStateManager(
+        video_id=video_id,
+        timeline_path=timeline_path,
+    )
+    evidence_manager = EvidenceManager(evidence_dir=evidence_dir)
+
+    notifier: TelegramNotifier | None = None
+    tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    tg_chat = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+    if tg_token and tg_chat:
+        notifier = TelegramNotifier(
+            token=tg_token,
+            chat_id=tg_chat,
+            camera_name=getattr(args, "camera_name", "Camera-1"),
+            state_path=REPO_ROOT / "data" / video_id / "telegram_state.json",
+            recurring_seconds=float(os.getenv("TELEGRAM_RECURRING_SECONDS", "300")),
+        )
+        notifier.start_callback_listener()
+
+    dispatcher = SegmentDispatcher(
+        state_manager=state_manager,
+        evidence_manager=evidence_manager,
+        output_dir=output_logs_dir,
+        failed_dir=failed_segments_dir,
+        max_workers=DISPATCH_MAX_WORKERS,
+        gemma_model=GEMMA_MODEL,
+        ppe_items=PPE_ITEMS,
+        notifier=notifier,
+    )
+
+    stream_start = time.time()
+    frame_interval = 1.0 / TARGET_FPS
+    last_capture_time = 0.0
+
+    logger.info("Pipeline thread active (event-driven, shared frame buffer)...")
+
+    try:
+        while not stop_event.is_set():
+            frame = frame_getter()
+            if frame is None:
+                time.sleep(0.05)
+                continue
+
+            now = time.time()
+            if (now - last_capture_time) < frame_interval:
+                time.sleep(0.005)
+                continue
+            last_capture_time = now
+
+            stream_time = now - stream_start
+            perception_result = perception.process_frame(frame, stream_time)
+            finalized_segment = buffer_manager.add_frame(frame, perception_result)
+
+            if finalized_segment is not None:
+                logger.info(
+                    "[BUFFER] Event segment closed: %s (%.1fs, %d frames)",
+                    finalized_segment.path.name,
+                    finalized_segment.duration_seconds,
+                    finalized_segment.frame_count,
+                )
+                dispatcher.submit(finalized_segment)
+
+    except Exception as exc:
+        logger.error("Pipeline thread error: %s", exc, exc_info=True)
+    finally:
+        final_segment = buffer_manager.flush(time.time() - stream_start)
+        if final_segment is not None:
+            dispatcher.submit(final_segment)
+        dispatcher.shutdown(wait=True)
+        final_document = state_manager.finalize()
+        state_manager.persist(final_document)
+        if notifier is not None:
+            notifier.notify_if_needed(final_document)
+            notifier.stop_callback_listener()
+        logger.info("Pipeline thread shut down. Timeline: %s", timeline_path)
+
+
 if __name__ == "__main__":
     start_stream(_parse_args())

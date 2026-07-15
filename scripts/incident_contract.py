@@ -6,8 +6,8 @@ against a single contract regardless of source.
 
 Design rules encoded here:
 
-* One incident refers to exactly one PPE item, so ``violated_items`` normally
-  contains a single element. Two simultaneously missing items => two incidents.
+* One incident refers to exactly one PERSON. All PPE items missing for that
+  person are listed together in ``violated_items`` (one or more elements).
 * ``unknown`` is never treated as compliance and never as a violation.
 * ``person_id`` stays ``None`` until real tracking exists.
 * No notification/alert decisions live in the contract. Thresholds and alert
@@ -152,7 +152,7 @@ def default_quality(
 def build_incident(
     *,
     index: int,
-    ppe_item: str,
+    ppe_items: list[str],
     start_seconds: float | None,
     end_seconds: float | None,
     status: str,
@@ -163,15 +163,17 @@ def build_incident(
     evidence: list[dict[str, Any]] | None = None,
     person_id: Any = None,
 ) -> dict[str, Any]:
-    """Build one normalized incident for a single PPE item."""
-    if ppe_item not in PPE_ITEMS:
-        raise ValueError(f"Unknown PPE item '{ppe_item}'.")
+    """Build one normalized incident for a person with one or more missing PPE items."""
+    for item in ppe_items:
+        if item not in PPE_ITEMS:
+            raise ValueError(f"Unknown PPE item '{item}'.")
     if status not in (STATUS_RESOLVED, STATUS_UNRESOLVED):
         raise ValueError(f"Unknown incident status '{status}'.")
 
     if ppe_status is None:
         ppe_status = empty_status_map()
-        ppe_status[ppe_item] = "missing"
+        for item in ppe_items:
+            ppe_status[item] = "missing"
 
     start_value = (
         round(float(start_seconds), 3) if start_seconds is not None else None
@@ -193,7 +195,7 @@ def build_incident(
         "end_seconds": end_value,
         "duration_seconds": compute_duration(start_value, end_value),
         "minimum_confirmed_duration_seconds": minimum_value,
-        "violated_items": [ppe_item],
+        "violated_items": list(ppe_items),
         "ppe_status": ppe_status,
         "confidence": confidence,
         "action_sequence": action_sequence or [],
@@ -260,19 +262,23 @@ def normalized_incidents_from_model(
             warnings.append(f"incident #{position}: not an object; skipped.")
             continue
 
-        ppe_item = str(raw.get("ppe_item", "")).strip().lower()
-        if ppe_item not in analysis_scope:
-            warnings.append(
-                f"incident #{position}: ppe_item '{ppe_item}' outside scope; "
-                "skipped."
-            )
-            continue
+        # Accept new per-person format (violated_items: list) or legacy (ppe_item: str).
+        raw_violated = raw.get("violated_items")
+        if isinstance(raw_violated, list) and raw_violated:
+            ppe_items_raw = [str(v).strip().lower() for v in raw_violated]
+        else:
+            single = str(raw.get("ppe_item", "")).strip().lower()
+            ppe_items_raw = [single] if single else []
 
-        status_value = normalize_status(raw.get("status", "missing"))
-        if status_value != "missing":
+        valid_items = [item for item in ppe_items_raw if item in analysis_scope]
+        skipped = set(ppe_items_raw) - set(valid_items)
+        if skipped:
             warnings.append(
-                f"incident #{position}: {ppe_item} status '{status_value}' is "
-                "not a violation; skipped."
+                f"incident #{position}: items {skipped} outside scope; dropped."
+            )
+        if not valid_items:
+            warnings.append(
+                f"incident #{position}: no valid PPE items after scope filter; skipped."
             )
             continue
 
@@ -305,7 +311,7 @@ def normalized_incidents_from_model(
                 f"incident #{position}: action_sequence not a list; reset."
             )
 
-        worker_label = raw.get("worker")
+        worker_label = raw.get("worker") or raw.get("person_id")
         worker_label = (
             worker_label.strip()
             if isinstance(worker_label, str) and worker_label.strip()
@@ -316,7 +322,7 @@ def normalized_incidents_from_model(
         incidents.append(
             build_incident(
                 index=index,
-                ppe_item=ppe_item,
+                ppe_items=valid_items,
                 start_seconds=start_seconds,
                 end_seconds=end_seconds,
                 status=incident_status,
@@ -449,9 +455,9 @@ def _validate_incident(
     if not isinstance(violated, list):
         errors.append(f"{prefix}: violated_items must be a list.")
     else:
-        if len(violated) != 1:
+        if len(violated) < 1:
             errors.append(
-                f"{prefix}: one incident must reference exactly one PPE item."
+                f"{prefix}: violated_items must contain at least one PPE item."
             )
         for item in violated:
             if scope and item not in scope:

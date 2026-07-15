@@ -12,16 +12,17 @@ const TRANSLATIONS = {
         "ppe.helmet": "Hard Hat Protection",
         "ppe.vest": "High-Vis Vest",
         "ppe.glasses": "Safety Glasses",
+        "ppe.gloves": "Gloves",
         "stats.safetyRate": "Safety Rate",
         "stats.personnel": "Active Personnel",
         "stats.violations": "PPE Violations",
         "camera.detecting": "Detecting Cameras...",
         "camera.detectingDesc": "Connecting to backend to enumerate available camera devices.",
         "camera.none": "No Cameras Detected",
-        "camera.noneDesc": "No camera devices found. Connect a camera and refresh, or upload a video file.",
-        "btn.startMonitoring": "Start Monitoring",
-        "btn.stopMonitoring": "Stop Monitoring",
-        "btn.uploadVideo": "Upload Video",
+        "camera.noneDesc": "No camera devices found. Connect a camera and refresh the page.",
+        "camera.selectAll": "Select All",
+        "btn.startMonitoring": "Start Stream",
+        "btn.stopMonitoring": "Stop Stream",
         "btn.refresh": "Refresh List",
         "btn.refreshLogs": "Refresh Logs",
         "hazard.title": "Hazard Violation Logs",
@@ -36,17 +37,16 @@ const TRANSLATIONS = {
         "incidents.empty": "No Reports Available",
         "incidents.emptyDesc": "PPE safety compliance violations log is empty.",
         "toast.settingsUpdated": "Detector settings updated",
-        "toast.noCameras": "No cameras available to start",
+        "toast.noCameras": "No cameras selected",
         "toast.camerasActive": "camera stream(s) activated",
         "toast.camerasDeactivated": "All camera streams deactivated",
         "toast.monitoringStarted": "AI monitoring started",
         "toast.monitoringStopped": "AI monitoring stopped",
         "toast.monitoringFailed": "Failed to start monitoring",
         "toast.stopFailed": "Failed to stop monitoring",
-        "toast.processingVideo": "Processing video file...",
-        "toast.analysisComplete": "Analysis Complete",
         "toast.detected": "cameras detected",
         "toast.incident": "Incident logged",
+        "toast.clickEye": "Click the eye icon on a camera to activate AI",
         "status.initializing": "INITIALIZING",
         "status.ready": "READY",
         "status.active": "ACTIVE",
@@ -64,16 +64,17 @@ const TRANSLATIONS = {
         "ppe.helmet": "Защитная каска",
         "ppe.vest": "Сигнальный жилет",
         "ppe.glasses": "Защитные очки",
+        "ppe.gloves": "Перчатки",
         "stats.safetyRate": "Соответствие",
         "stats.personnel": "Персонал",
         "stats.violations": "Нарушения",
         "camera.detecting": "Поиск камер...",
         "camera.detectingDesc": "Подключение к серверу для обнаружения камер.",
         "camera.none": "Камеры не найдены",
-        "camera.noneDesc": "Подключите камеру и обновите страницу, или загрузите видеофайл.",
-        "btn.startMonitoring": "Начать мониторинг",
-        "btn.stopMonitoring": "Остановить",
-        "btn.uploadVideo": "Загрузить видео",
+        "camera.noneDesc": "Подключите камеру и обновите страницу.",
+        "camera.selectAll": "Выбрать все",
+        "btn.startMonitoring": "Запустить стрим",
+        "btn.stopMonitoring": "Остановить стрим",
         "btn.refresh": "Обновить список",
         "btn.refreshLogs": "Обновить логи",
         "hazard.title": "Журнал нарушений",
@@ -88,17 +89,16 @@ const TRANSLATIONS = {
         "incidents.empty": "Отчётов нет",
         "incidents.emptyDesc": "Журнал нарушений СИЗ пуст.",
         "toast.settingsUpdated": "Настройки детектора обновлены",
-        "toast.noCameras": "Нет доступных камер",
+        "toast.noCameras": "Камеры не выбраны",
         "toast.camerasActive": "потока камер активированы",
         "toast.camerasDeactivated": "Все потоки камер остановлены",
         "toast.monitoringStarted": "ИИ-мониторинг запущен",
         "toast.monitoringStopped": "ИИ-мониторинг остановлен",
         "toast.monitoringFailed": "Не удалось запустить мониторинг",
         "toast.stopFailed": "Не удалось остановить мониторинг",
-        "toast.processingVideo": "Обработка видеофайла...",
-        "toast.analysisComplete": "Анализ завершён",
         "toast.detected": "камер обнаружено",
         "toast.incident": "Инцидент зафиксирован",
+        "toast.clickEye": "Нажмите на глаз на камере для запуска ИИ",
         "status.initializing": "ИНИЦИАЛИЗАЦИЯ",
         "status.ready": "ГОТОВО",
         "status.active": "АКТИВНО",
@@ -116,16 +116,17 @@ const TRANSLATIONS = {
         "ppe.helmet": "Qoruyucu dəbilqə",
         "ppe.vest": "Siqnal jimki",
         "ppe.glasses": "Qoruyucu eynək",
+        "ppe.gloves": "Əlcəklər",
         "stats.safetyRate": "Uyğunluq",
         "stats.personnel": "Personal",
         "stats.violations": "Pozuntular",
         "camera.detecting": "Kameralar axtarılır...",
         "camera.detectingDesc": "Kamera cihazlarını müəyyən etmək üçün server ilə əlaqə.",
         "camera.none": "Kamera tapılmadı",
-        "camera.noneDesc": "Kamera bağlayın və yeniləyin, ya da video faylı yükləyin.",
-        "btn.startMonitoring": "Monitorinqə başla",
-        "btn.stopMonitoring": "Dayandır",
-        "btn.uploadVideo": "Video yüklə",
+        "camera.noneDesc": "Kamera bağlayın və səhifəni yeniləyin.",
+        "camera.selectAll": "Hamısını seç",
+        "btn.startMonitoring": "Yayımı başlat",
+        "btn.stopMonitoring": "Yayımı dayandır",
         "btn.refresh": "Siyahını yenilə",
         "btn.refreshLogs": "Qeydləri yenilə",
         "hazard.title": "Pozuntu jurnalı",
@@ -140,17 +141,16 @@ const TRANSLATIONS = {
         "incidents.empty": "Hesabat yoxdur",
         "incidents.emptyDesc": "FMM uyğunluq pozuntuları jurnalı boşdur.",
         "toast.settingsUpdated": "Detektor parametrləri yeniləndi",
-        "toast.noCameras": "İstifadə oluna bilən kamera yoxdur",
+        "toast.noCameras": "Kamera seçilməyib",
         "toast.camerasActive": "kamera axını aktivləşdirildi",
         "toast.camerasDeactivated": "Bütün kamera axınları dayandırıldı",
         "toast.monitoringStarted": "AI monitorinqi başladı",
         "toast.monitoringStopped": "AI monitorinqi dayandırıldı",
         "toast.monitoringFailed": "Monitorinqi başlatmaq alınmadı",
         "toast.stopFailed": "Monitorinqi dayandırmaq alınmadı",
-        "toast.processingVideo": "Video faylı emal edilir...",
-        "toast.analysisComplete": "Analiz tamamlandı",
         "toast.detected": "kamera aşkar edildi",
         "toast.incident": "Hadisə qeydə alındı",
+        "toast.clickEye": "AI-ı aktivləşdirmək üçün kameradakı göz ikonuna basın",
         "status.initializing": "İNİSİALİZASİYA",
         "status.ready": "HAZIR",
         "status.active": "AKTİV",
@@ -179,41 +179,26 @@ function applyLanguage(lang) {
         const val = TRANSLATIONS[lang] && TRANSLATIONS[lang][key];
         if (val) el.textContent = val;
     });
-    // Update dynamic elements that were set via JS
-    if (elements && elements.consoleLog) {
-        if (!state.isStreaming && !state.isFilePlaying && !state.cameraStreaming) {
-            elements.consoleLog.textContent = '{ "status": "system_idle", "message": "Awaiting active camera stream or video file upload..." }';
-        }
-    }
 }
 
 // ----------------------------------------------------
 // GLOBAL APP STATE
 // ----------------------------------------------------
 const state = {
-    stream: null,
-    videoElement: null,
-    canvasElement: null,
-    canvasCtx: null,
     isStreaming: false,
-    isFilePlaying: false,
     isMonitoring: false,
     currentView: 'dashboard',
     settings: {
         require_helmet: true,
         require_vest: true,
-        require_goggles: true
+        require_goggles: true,
+        require_gloves: false,
     },
     isBackendConnected: false,
-    fps: 0,
-    fpsIntervalTimer: null,
-    drawLoopRequest: null,
-    lastFrameTime: Date.now(),
-    latency: 0,
-    frameCount: 0,
     localAlerts: [],
     localRecordings: [],
     cameras: [],
+    selectedCameraIds: new Set(),
     cameraStreaming: false,
     shownAlertIds: new Set(),
 };
@@ -232,24 +217,18 @@ const elements = {
     statusDot: document.getElementById('system-status-dot'),
     statusText: document.getElementById('system-status-text'),
     statusIndicator: document.getElementById('system-status-indicator'),
-    metricSafetyRate: document.getElementById('metric-safety-rate'),
-    metricActivePersonnel: document.getElementById('metric-active-personnel'),
-    metricViolationsCount: document.getElementById('metric-violations-count'),
     violationsCountBadge: document.getElementById('violations-count-badge'),
     cameraGrid: document.getElementById('camera-grid'),
     cameraGridPlaceholder: document.getElementById('camera-grid-placeholder'),
-    cameraCanvas: document.getElementById('camera-canvas'),
-    sourceVideo: document.getElementById('source-video-element'),
-    videoFileInput: document.getElementById('video-file-input'),
+    cameraSelectionBar: document.getElementById('camera-selection-bar'),
+    selAllCameras: document.getElementById('sel-all-cameras'),
+    camSelInfo: document.getElementById('cam-sel-info'),
     btnStartStream: document.getElementById('btn-start-stream'),
     btnPauseStream: document.getElementById('btn-pause-stream'),
-    btnUploadTrigger: document.getElementById('btn-upload-trigger'),
     reqHelmet: document.getElementById('req-helmet'),
     reqVest: document.getElementById('req-vest'),
     reqGoggles: document.getElementById('req-goggles'),
-    consoleLog: document.getElementById('console-log-stream'),
-    consoleFps: document.getElementById('console-fps'),
-    consoleLatency: document.getElementById('console-latency'),
+    reqGloves: document.getElementById('req-gloves'),
     liveAlertFeed: document.getElementById('live-alert-feed'),
     recordingsGrid: document.getElementById('recordings-grid'),
     alertsGrid: document.getElementById('alerts-grid'),
@@ -265,6 +244,8 @@ const elements = {
     btnThemeToggle: document.getElementById('btn-theme-toggle'),
     themeIconSun: document.getElementById('theme-icon-sun'),
     themeIconMoon: document.getElementById('theme-icon-moon'),
+    violationLogPanel: document.getElementById('violation-log-panel'),
+    violationLogToggle: document.getElementById('violation-log-toggle'),
 };
 
 // ----------------------------------------------------
@@ -279,9 +260,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupThemeToggle();
     setupSidebarToggle();
     setupLanguageSwitcher();
+    setupViolationLogToggle();
 
-    state.canvasElement = document.createElement('canvas');
-    state.canvasCtx = state.canvasElement.getContext('2d');
     syncSettingsState();
 
     state.isBackendConnected = true;
@@ -334,6 +314,18 @@ function setupSidebarToggle() {
 }
 
 // ----------------------------------------------------
+// VIOLATION LOG COLLAPSE
+// ----------------------------------------------------
+function setupViolationLogToggle() {
+    const toggle = elements.violationLogToggle;
+    const panel = elements.violationLogPanel;
+    if (!toggle || !panel) return;
+    toggle.addEventListener('click', () => {
+        panel.classList.toggle('log-collapsed');
+    });
+}
+
+// ----------------------------------------------------
 // LANGUAGE SWITCHER
 // ----------------------------------------------------
 function setupLanguageSwitcher() {
@@ -382,7 +374,33 @@ async function fetchAndBuildCameraGrid() {
     }
 
     grid.innerHTML = '';
-    state.cameras.forEach(cam => grid.appendChild(buildCameraCard(cam)));
+    state.selectedCameraIds.clear();
+    state.cameras.forEach(cam => {
+        state.selectedCameraIds.add(cam.id);
+        grid.appendChild(buildCameraCard(cam));
+    });
+
+    // Show camera selection bar
+    if (elements.cameraSelectionBar) {
+        elements.cameraSelectionBar.style.display = 'flex';
+    }
+    updateCameraSelectionInfo();
+
+    // Wire up "Select All" checkbox
+    if (elements.selAllCameras) {
+        elements.selAllCameras.addEventListener('change', function () {
+            state.cameras.forEach(cam => {
+                const cb = document.getElementById(`cam-sel-${cam.id}`);
+                if (cb) cb.checked = this.checked;
+                if (this.checked) {
+                    state.selectedCameraIds.add(cam.id);
+                } else {
+                    state.selectedCameraIds.delete(cam.id);
+                }
+            });
+            updateCameraSelectionInfo();
+        });
+    }
 
     const countLabel = `${state.cameras.length} ${t('status.ready')}`;
     updateStatusText(countLabel, 'green');
@@ -396,6 +414,8 @@ function buildCameraCard(cam) {
     card.innerHTML = `
         <div class="camera-card-header">
             <div class="camera-card-title-group">
+                <input type="checkbox" class="cam-select-checkbox" id="cam-sel-${cam.id}" checked
+                    onchange="toggleCameraSelection(${cam.id}, this.checked)">
                 <span class="camera-status-dot" id="cam-dot-${cam.id}"></span>
                 <span class="camera-card-name">${cam.name}</span>
                 <span class="camera-card-resolution">${cam.resolution}</span>
@@ -416,6 +436,13 @@ function buildCameraCard(cam) {
                 </svg>
                 <span>Standby</span>
             </div>
+            <button class="cam-monitor-btn" id="cam-monitor-btn-${cam.id}"
+                onclick="toggleMonitoring()" title="Toggle AI Monitoring">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
             <div class="camera-feed-overlay">
                 <span class="camera-overlay-badge disconnected" id="cam-badge-${cam.id}">OFFLINE</span>
                 <span class="camera-overlay-timestamp" id="cam-time-${cam.id}">--:--:--</span>
@@ -425,7 +452,27 @@ function buildCameraCard(cam) {
     return card;
 }
 
-function toggleCameraFullscreen(camId) {
+window.toggleCameraSelection = function (camId, checked) {
+    if (checked) {
+        state.selectedCameraIds.add(camId);
+    } else {
+        state.selectedCameraIds.delete(camId);
+    }
+    updateCameraSelectionInfo();
+};
+
+function updateCameraSelectionInfo() {
+    if (elements.camSelInfo) {
+        elements.camSelInfo.textContent = `${state.selectedCameraIds.size} / ${state.cameras.length}`;
+    }
+    if (elements.selAllCameras) {
+        elements.selAllCameras.checked = state.selectedCameraIds.size === state.cameras.length;
+        elements.selAllCameras.indeterminate =
+            state.selectedCameraIds.size > 0 && state.selectedCameraIds.size < state.cameras.length;
+    }
+}
+
+window.toggleCameraFullscreen = function (camId) {
     const feedWrapper = document.getElementById(`cam-feed-${camId}`);
     if (!feedWrapper) return;
     if (!document.fullscreenElement) {
@@ -433,7 +480,7 @@ function toggleCameraFullscreen(camId) {
     } else {
         document.exitFullscreen();
     }
-}
+};
 
 // ----------------------------------------------------
 // CLOCK & HEADER METRICS
@@ -445,23 +492,11 @@ function setupClock() {
 }
 
 function updateHeaderMetrics(activeCount, violationsCount) {
-    elements.metricActivePersonnel.textContent = activeCount;
-    elements.metricViolationsCount.textContent = violationsCount;
-    elements.violationsCountBadge.textContent = violationsCount;
-
-    if (activeCount === 0) {
-        elements.metricSafetyRate.textContent = "100%";
-        elements.metricSafetyRate.className = "stat-val green";
-    } else {
-        const rate = Math.round(((activeCount - violationsCount) / activeCount) * 100);
-        elements.metricSafetyRate.textContent = `${rate}%`;
-        elements.metricSafetyRate.className = rate >= 90 ? "stat-val green" : rate >= 70 ? "stat-val orange" : "stat-val red";
-    }
+    if (elements.violationsCountBadge) elements.violationsCountBadge.textContent = violationsCount;
 }
 
 function updateHeaderMetricsFromAlerts(alerts) {
-    const violations = alerts.length;
-    updateHeaderMetrics(violations > 0 ? violations : 0, violations);
+    updateHeaderMetrics(alerts.length, alerts.length);
 }
 
 // ----------------------------------------------------
@@ -495,46 +530,64 @@ function syncSettingsState() {
     state.settings.require_helmet = elements.reqHelmet.checked;
     state.settings.require_vest = elements.reqVest.checked;
     state.settings.require_goggles = elements.reqGoggles.checked;
+    state.settings.require_gloves = elements.reqGloves ? elements.reqGloves.checked : false;
 }
 
 function setupControlsListeners() {
-    [elements.reqHelmet, elements.reqVest, elements.reqGoggles].forEach(input => {
+    [elements.reqHelmet, elements.reqVest, elements.reqGoggles, elements.reqGloves].filter(Boolean).forEach(input => {
         if (input) input.addEventListener('change', () => {
             syncSettingsState();
             showToast(t('toast.settingsUpdated'), "warning");
         });
     });
 
-    elements.btnStartStream.addEventListener('click', startMonitoring);
-    elements.btnPauseStream.addEventListener('click', stopMonitoring);
-
-    elements.btnUploadTrigger.addEventListener('click', () => elements.videoFileInput.click());
-    elements.videoFileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) handleUploadedVideoFile(e.target.files[0]);
-    });
-
+    elements.btnStartStream.addEventListener('click', startStream);
+    elements.btnPauseStream.addEventListener('click', stopStream);
     elements.modalClose.addEventListener('click', closeModal);
 }
 
 // ----------------------------------------------------
-// UNIFIED START / STOP  (cameras + AI pipeline)
+// START / STOP STREAM  (camera preview only)
 // ----------------------------------------------------
-async function startMonitoring() {
-    if (state.cameraStreaming || state.isFilePlaying) return;
+function resetViolationJournal() {
+    state.shownAlertIds = new Set();
+    state.localAlerts = [];
+    if (elements.liveAlertFeed) {
+        elements.liveAlertFeed.innerHTML = `
+            <div class="empty-state-card">
+                <div class="empty-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <h5>${t('hazard.safeTitle')}</h5>
+                <p>${t('hazard.safeDesc')}</p>
+            </div>`;
+    }
+    if (elements.violationsCountBadge) elements.violationsCountBadge.textContent = '0';
+}
 
-    if (state.cameras.length === 0) {
+async function startStream() {
+    if (state.cameraStreaming) return;
+
+    // Reset journal on each new stream session
+    resetViolationJournal();
+
+    const selectedCams = state.cameras.filter(cam => state.selectedCameraIds.has(cam.id));
+    if (selectedCams.length === 0) {
         showToast(t('toast.noCameras'), "danger");
         return;
     }
 
-    // 1. Start MJPEG preview for each camera
-    state.cameras.forEach(cam => {
+    selectedCams.forEach(cam => {
         const feedWrapper = document.getElementById(`cam-feed-${cam.id}`);
         const placeholder = document.getElementById(`cam-placeholder-${cam.id}`);
         const badge = document.getElementById(`cam-badge-${cam.id}`);
         const dot = document.getElementById(`cam-dot-${cam.id}`);
         const timeEl = document.getElementById(`cam-time-${cam.id}`);
         const card = document.getElementById(`camera-card-${cam.id}`);
+        const eyeBtn = document.getElementById(`cam-monitor-btn-${cam.id}`);
 
         if (placeholder) placeholder.style.display = 'none';
 
@@ -550,6 +603,7 @@ async function startMonitoring() {
         if (badge) { badge.textContent = 'LIVE'; badge.classList.remove('disconnected'); }
         if (dot) dot.className = 'camera-status-dot online';
         if (card) card.classList.add('camera-active');
+        if (eyeBtn) eyeBtn.style.display = 'flex';
 
         if (timeEl) {
             cam._timeInterval = setInterval(() => {
@@ -565,47 +619,20 @@ async function startMonitoring() {
     elements.btnStartStream.disabled = true;
     elements.btnPauseStream.disabled = false;
 
-    updateStatusText(t('status.monitoring'), 'orange');
-    showToast(`${state.cameras.length} ${t('toast.camerasActive')}`, "success");
-
-    // 2. Start AI pipeline
-    try {
-        const response = await fetch("/api/live/start", { method: "POST" });
-        const result = await response.json();
-        if (result.success) {
-            state.isMonitoring = true;
-            showToast(t('toast.monitoringStarted'), "success");
-            updateConsoleForMonitoring();
-            startAlertPolling();
-        } else {
-            showToast(result.error || t('toast.monitoringFailed'), "danger");
-        }
-    } catch (err) {
-        console.error(err);
-        showToast(t('toast.monitoringFailed'), "danger");
-    }
+    updateStatusText(t('status.active'), 'green');
+    showToast(`${selectedCams.length} ${t('toast.camerasActive')}`, "success");
+    setTimeout(() => showToast(t('toast.clickEye'), "warning"), 1200);
 }
 
-async function stopMonitoring() {
-    // 1. Stop MJPEG streams
-    if (state.drawLoopRequest) cancelAnimationFrame(state.drawLoopRequest);
-    state.drawLoopRequest = null;
-
-    if (state.stream) {
-        state.stream.getTracks().forEach(track => track.stop());
-        state.stream = null;
-    }
-
-    elements.sourceVideo.pause();
-    elements.sourceVideo.src = '';
-    elements.sourceVideo.srcObject = null;
-
+async function stopStream() {
+    // Stop all camera streams
     state.cameras.forEach(cam => {
         const feedWrapper = document.getElementById(`cam-feed-${cam.id}`);
         const placeholder = document.getElementById(`cam-placeholder-${cam.id}`);
         const badge = document.getElementById(`cam-badge-${cam.id}`);
         const dot = document.getElementById(`cam-dot-${cam.id}`);
         const card = document.getElementById(`camera-card-${cam.id}`);
+        const eyeBtn = document.getElementById(`cam-monitor-btn-${cam.id}`);
 
         if (feedWrapper) {
             const imgEl = feedWrapper.querySelector('img.mjpeg-feed');
@@ -616,6 +643,7 @@ async function stopMonitoring() {
         if (badge) { badge.textContent = 'OFFLINE'; badge.classList.add('disconnected'); }
         if (dot) dot.className = 'camera-status-dot offline';
         if (card) card.classList.remove('camera-active');
+        if (eyeBtn) { eyeBtn.style.display = 'none'; eyeBtn.classList.remove('monitoring-active'); }
 
         if (cam._timeInterval) { clearInterval(cam._timeInterval); cam._timeInterval = null; }
         const timeEl = document.getElementById(`cam-time-${cam.id}`);
@@ -623,25 +651,42 @@ async function stopMonitoring() {
     });
 
     state.isStreaming = false;
-    state.isFilePlaying = false;
     state.cameraStreaming = false;
 
     elements.btnStartStream.disabled = false;
     elements.btnPauseStream.disabled = true;
 
-    updateHeaderMetrics(0, 0);
     const camCount = state.cameras.length;
     updateStatusText(`${camCount} ${t('status.ready')}`, 'green');
-    elements.consoleLog.textContent = '{ "status": "system_idle", "message": "Awaiting active camera stream or video file upload..." }';
     showToast(t('toast.camerasDeactivated'), "warning");
 
-    // 2. Stop AI pipeline
+    // Stop AI pipeline if running
     if (state.isMonitoring) {
+        try {
+            await fetch("/api/live/stop", { method: "POST" });
+            state.isMonitoring = false;
+        } catch {}
+        stopAlertPolling();
+        showToast(t('toast.monitoringStopped'), "warning");
+    }
+}
+
+// ----------------------------------------------------
+// AI MONITORING TOGGLE  (eye icon on camera card)
+// ----------------------------------------------------
+window.toggleMonitoring = async function () {
+    if (!state.cameraStreaming) return;
+
+    if (state.isMonitoring) {
+        // Stop AI monitoring
         try {
             const response = await fetch("/api/live/stop", { method: "POST" });
             const result = await response.json();
             if (result.success) {
                 state.isMonitoring = false;
+                setEyeButtonsState(false);
+                stopAlertPolling();
+                updateStatusText(t('status.active'), 'green');
                 showToast(t('toast.monitoringStopped'), "warning");
             } else {
                 showToast(result.error || t('toast.stopFailed'), "danger");
@@ -650,9 +695,31 @@ async function stopMonitoring() {
             console.error(err);
             showToast(t('toast.stopFailed'), "danger");
         }
+    } else {
+        // Start AI monitoring
+        try {
+            const response = await fetch("/api/live/start", { method: "POST" });
+            const result = await response.json();
+            if (result.success) {
+                state.isMonitoring = true;
+                setEyeButtonsState(true);
+                startAlertPolling();
+                updateStatusText(t('status.monitoring'), 'orange');
+                showToast(t('toast.monitoringStarted'), "success");
+            } else {
+                showToast(result.error || t('toast.monitoringFailed'), "danger");
+            }
+        } catch (err) {
+            console.error(err);
+            showToast(t('toast.monitoringFailed'), "danger");
+        }
     }
+};
 
-    stopAlertPolling();
+function setEyeButtonsState(active) {
+    document.querySelectorAll('.cam-monitor-btn').forEach(btn => {
+        btn.classList.toggle('monitoring-active', active);
+    });
 }
 
 // ----------------------------------------------------
@@ -689,81 +756,16 @@ async function pollAndUpdateSidebar() {
 }
 
 // ----------------------------------------------------
-// CONSOLE OUTPUT DURING MONITORING
+// STATUS HELPERS
 // ----------------------------------------------------
-function updateConsoleForMonitoring() {
-    const logData = {
-        status: "pipeline_active",
-        engine: "Nemotron-VLM + Gemma",
-        message: "Event-driven live stream pipeline running. Awaiting PPE violation events...",
-        camera_source: state.cameras.length > 0 ? `Camera ${state.cameras[0].id} (${state.cameras[0].resolution})` : "unknown",
-    };
-    elements.consoleLog.innerHTML = syntaxHighlightJson(JSON.stringify(logData, null, 2));
-}
-
-// ----------------------------------------------------
-// VIDEO FILE UPLOAD & ANALYSIS
-// ----------------------------------------------------
-function handleUploadedVideoFile(file) {
-    if (state.isStreaming || state.isFilePlaying || state.cameraStreaming) {
-        stopMonitoring();
-    }
-
-    const url = URL.createObjectURL(file);
-    elements.sourceVideo.srcObject = null;
-    elements.sourceVideo.src = url;
-    elements.sourceVideo.play();
-    state.isFilePlaying = true;
-
-    elements.btnStartStream.disabled = true;
-    elements.btnPauseStream.disabled = false;
-
-    showToast(t('toast.processingVideo'), "success");
-    elements.consoleLog.innerHTML = '<div style="color: #FBBF24;">{ "status": "system_busy", "message": "Waiting for API response..." }</div>';
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    fetch('/api/upload', { method: 'POST', body: formData })
-        .then(res => res.json())
-        .then(data => {
-            if (data.error) throw new Error(data.error);
-            return fetch('/api/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ video_name: data.filename, pipeline: "video_frame_pipeline" })
-            });
-        })
-        .then(async response => {
-            if (!response.ok) throw new Error('API Request Failed');
-            const result = await response.json();
-            const incidents = (result.data && result.data.incidents) || [];
-            updateConsoleOutput(incidents, result.data && result.data.incident_detected);
-            if (incidents.length > 0) {
-                incidents.forEach(inc => {
-                    addViolationToSidebar({
-                        id: inc.incident_id,
-                        timestamp: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
-                        description: `PPE violation: ${(inc.violated_items || []).join(', ')} missing`,
-                        image_path: "",
-                        violators_details: [{ person_id: inc.person_id || 1, missing: inc.violated_items || [] }],
-                        confidence: inc.confidence || 0.85
-                    });
-                });
-            }
-            showToast(t('toast.analysisComplete'), "success");
-        })
-        .catch(err => {
-            console.error("Analysis Error:", err);
-            showToast("Error: " + err.message, "danger");
-        });
+function updateStatusText(text, colorClass) {
+    elements.statusText.textContent = text;
+    elements.statusDot.className = `status-dot ${colorClass}`;
 }
 
 // ----------------------------------------------------
 // VIOLATION SIDEBAR
 // ----------------------------------------------------
-let lastAlertedTime = {};
-
 function addViolationToSidebar(alert) {
     if (elements.liveAlertFeed.querySelector('.empty-state-card')) {
         elements.liveAlertFeed.innerHTML = '';
@@ -785,7 +787,6 @@ function addViolationToSidebar(alert) {
         <div class="violation-item-details">
             <div class="violation-item-meta">
                 <span class="violation-time">${timeStr}</span>
-                <span class="violation-conf">${Math.round((alert.confidence || 0.9) * 100)}% Match</span>
             </div>
             <h4 class="violation-title">No ${missingStr.replace(/_/g, ' ')}</h4>
             <p class="violation-desc">${alert.description || ''}</p>
@@ -811,52 +812,9 @@ function addViolationToSidebar(alert) {
 }
 
 // ----------------------------------------------------
-// CONSOLE OUTPUT
-// ----------------------------------------------------
-function updateConsoleOutput(detections, violationDetected) {
-    const logData = {
-        timestamp: new Date().toISOString(),
-        engine: "Nemotron-VLM + Gemma",
-        site_compliance: {
-            secure: !violationDetected,
-            incident_count: (detections || []).length
-        },
-        incidents: (detections || []).map(d => ({
-            incident_id: d.incident_id || "unknown",
-            confidence: d.confidence ? parseFloat(d.confidence) : 0.0,
-            violated_items: d.violated_items || [],
-            status: d.status || "unknown",
-        }))
-    };
-    elements.consoleLog.innerHTML = syntaxHighlightJson(JSON.stringify(logData, null, 2));
-}
-
-function syntaxHighlightJson(json) {
-    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, function (match) {
-        let cls = 'json-val-num';
-        if (/^"/.test(match)) {
-            cls = /:$/.test(match) ? 'json-key' : 'json-val-str';
-            if (cls === 'json-key') return `<span class="${cls}">${match.slice(0, -1)}</span>:`;
-        } else if (/true|false/.test(match)) {
-            cls = 'json-val-bool';
-        }
-        return `<span class="${cls}">${match}</span>`;
-    });
-}
-
-// ----------------------------------------------------
-// STATUS HELPERS
-// ----------------------------------------------------
-function updateStatusText(text, colorClass) {
-    elements.statusText.textContent = text;
-    elements.statusDot.className = `status-dot ${colorClass}`;
-}
-
-// ----------------------------------------------------
 // MODAL
 // ----------------------------------------------------
-window.openSnapshotByUrl = function(imageUrl, alertId) {
+window.openSnapshotByUrl = function (imageUrl, alertId) {
     elements.modalTitle.textContent = `Incident Frame // ID: ${alertId.toUpperCase()}`;
     elements.modalMediaBody.innerHTML = `
         <img src="${imageUrl}" style="width:100%;aspect-ratio:16/9;object-fit:contain;border-radius:8px;border:1px solid #1E293B;">
@@ -864,13 +822,13 @@ window.openSnapshotByUrl = function(imageUrl, alertId) {
     elements.modal.classList.add('active');
 };
 
-window.openSnapshot = function(alertId) {
+window.openSnapshot = function (alertId) {
     const alert = state.localAlerts.find(a => a.id === alertId);
     if (!alert || !alert.image_path) return;
     openSnapshotByUrl(alert.image_path, alertId);
 };
 
-window.playArchiveVideo = function(url, filename) {
+window.playArchiveVideo = function (url, filename) {
     elements.modalTitle.textContent = `Video Archive // ${filename}`;
     elements.modalMediaBody.innerHTML = `
         <video id="modal-video-player" class="modal-video" controls autoplay>
@@ -942,13 +900,6 @@ function renderRecordingsList(data) {
                     <span>Size: ${sizeMB} MB</span>
                 </div>
                 <div class="rec-meta-dt">Timestamp: ${rec.timestamp}</div>
-                <div class="rec-actions">
-                    <a class="btn-icon" href="${videoUrl}" download="${rec.filename}" title="Download">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                        </svg>
-                    </a>
-                </div>
             </div>
         `;
         elements.recordingsGrid.appendChild(card);
@@ -1004,7 +955,7 @@ function renderAlertsList(data) {
     });
 }
 
-window.deleteAlert = async function(alertId) {
+window.deleteAlert = async function (alertId) {
     if (!confirm(`Delete incident log "${alertId}"?`)) return;
     try { await fetch(`/api/alerts/${alertId}`, { method: 'DELETE' }); } catch {}
     state.localAlerts = state.localAlerts.filter(a => a.id !== alertId);

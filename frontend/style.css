@@ -199,8 +199,7 @@ body {
 .sidebar.collapsed .logo-text,
 .sidebar.collapsed .settings-header,
 .sidebar.collapsed .settings-group,
-.sidebar.collapsed .toggle-label,
-.sidebar.collapsed .btn-sidebar-toggle { opacity: 0; pointer-events: none; }
+.sidebar.collapsed .toggle-label { opacity: 0; pointer-events: none; }
 .sidebar.collapsed .menu-item span { display: none; }
 .sidebar.collapsed .menu-item { justify-content: center; padding: 0.85rem 0.5rem; }
 .sidebar.collapsed .logo-section { justify-content: center; }
@@ -422,6 +421,13 @@ body {
     justify-content: space-between;
     padding: 0 1.5rem;
     flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+[data-theme="dark"] .top-bar {
+    background-color: var(--bg-card);
 }
 
 .system-status-indicator {
@@ -525,25 +531,86 @@ body {
 }
 
 /* ---------------------------------------------------- */
-/* MONITORING DASHBOARD GRID LAYOUT                     */
+/* MONITORING DASHBOARD — SINGLE COLUMN LAYOUT          */
 /* ---------------------------------------------------- */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 1.5rem;
-    align-items: start;
-}
-
-@media (max-width: 1300px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.main-viewport-column {
+.dashboard-single-col {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
+}
+
+/* ---- Camera controls row (select-all + stream btns) ---- */
+.camera-controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
+    gap: 1rem;
+    box-shadow: var(--shadow-sm);
+    flex-wrap: wrap;
+}
+
+.stream-btns {
+    display: flex;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
+/* ---- Violation log panel (below camera grid) ---- */
+.violation-log-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.violation-log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s ease;
+}
+
+.violation-log-header:hover {
+    background: var(--bg-body);
+}
+
+.violation-log-header .header-main-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.violation-log-header h3 {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.violation-log-chevron {
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+}
+
+.violation-log-panel.log-collapsed .violation-list {
+    display: none;
+}
+
+.violation-log-panel.log-collapsed .violation-log-chevron {
+    transform: rotate(180deg);
 }
 
 /* ---------------------------------------------------- */
@@ -762,6 +829,14 @@ body {
     opacity: 0.4;
     cursor: not-allowed;
 }
+[data-theme="dark"] .btn-secondary {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] .btn-secondary:hover {
+    background-color: var(--bg-body);
+}
 
 .btn-record {
     background-color: #FFFFFF;
@@ -811,87 +886,6 @@ body {
     opacity: 0.4;
     cursor: not-allowed;
 }
-
-/* ---------------------------------------------------- */
-/* YAPAY ZEKA ÇIKTI PANELİ (Terminal Console)           */
-/* ---------------------------------------------------- */
-.console-card {
-    background-color: #0F172A; /* Dark code background */
-    border-radius: 12px;
-    box-shadow: var(--shadow-md);
-    border: 1px solid #1E293B;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.console-header {
-    background-color: #1E293B;
-    padding: 0.6rem 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #0F172A;
-}
-
-.console-header-left {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-.console-bullet {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-}
-.console-bullet.red { background-color: #EF4444; }
-.console-bullet.yellow { background-color: #F59E0B; }
-.console-bullet.green { background-color: #10B981; }
-
-.console-title {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: #94A3B8;
-    margin-left: 0.5rem;
-}
-
-.console-header-right {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.console-pill {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    color: #F8FAFC;
-    background-color: #0F172A;
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.console-terminal-body {
-    padding: 1rem;
-    max-height: 150px;
-    min-height: 120px;
-    overflow-y: auto;
-}
-
-.console-code {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: #38BDF8; /* Cyberpunk light blue default */
-    white-space: pre-wrap;
-    word-break: break-all;
-    line-height: 1.4;
-}
-
-/* Custom internal syntax styling for dynamic log rendering */
-.console-code .json-key { color: #E2E8F0; }
-.console-code .json-val-str { color: #A7F3D0; }
-.console-code .json-val-num { color: #FCD34D; }
-.console-code .json-val-bool { color: #F472B6; }
 
 /* ---------------------------------------------------- */
 /* HAZARD SIDEBAR VIOLATION LIST                        */
@@ -1426,6 +1420,11 @@ body {
     animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+[data-theme="dark"] .toast {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+}
+
 .toast.danger {
     border-left-color: var(--color-danger);
     box-shadow: var(--shadow-danger-glow), var(--shadow-lg);
@@ -1468,9 +1467,13 @@ body {
     min-height: 300px;
 }
 
-/* When only 1 camera, make it take full width */
+/* When only 1 camera, make it take full width with a taller feed */
 .camera-grid.single-camera {
     grid-template-columns: 1fr;
+}
+
+.camera-grid.single-camera .camera-feed-wrapper {
+    max-height: 75vh;
 }
 
 /* Placeholder (loading state) */
@@ -1630,12 +1633,13 @@ body {
     background: #0B0F19;
     aspect-ratio: 16 / 9;
     overflow: hidden;
+    max-height: 62vh;
 }
 
 .camera-feed-wrapper img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
 }
 
@@ -1770,4 +1774,137 @@ body {
     .camera-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* ---------------------------------------------------- */
+/* CAMERA SELECTION BAR (legacy alias)                  */
+/* ---------------------------------------------------- */
+.camera-selection-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
+    gap: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.cam-sel-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.cam-sel-all-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    user-select: none;
+}
+
+.cam-sel-all-label input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
+
+.cam-sel-info {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+/* Camera checkbox in card header */
+.cam-select-checkbox {
+    width: 13px;
+    height: 13px;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* ---------------------------------------------------- */
+/* EYE / MONITORING TOGGLE BUTTON ON CAMERA FEED        */
+/* ---------------------------------------------------- */
+.cam-monitor-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.65);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+}
+
+.cam-monitor-btn:hover {
+    color: white;
+    background: rgba(0, 0, 0, 0.75);
+    border-color: rgba(255, 255, 255, 0.55);
+}
+
+.cam-monitor-btn.monitoring-active {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: rgba(255, 85, 0, 0.22);
+    box-shadow: 0 0 0 2px rgba(255, 85, 0, 0.25);
+    animation: eyePulse 2s ease-in-out infinite;
+}
+
+@keyframes eyePulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(255, 85, 0, 0.35); }
+    50%       { box-shadow: 0 0 18px rgba(255, 85, 0, 0.7); }
+}
+
+.cam-monitor-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+/* ---------------------------------------------------- */
+/* COLLAPSIBLE CONTROL BAR                              */
+/* ---------------------------------------------------- */
+.control-bar-toggle-handle {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.2rem 0 0.4rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+}
+
+.control-bar-toggle-handle:hover {
+    color: var(--color-primary);
+}
+
+.control-bar-toggle-handle svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.25s ease;
+}
+
+.player-control-bar.bar-collapsed .ctrl-group-left,
+.player-control-bar.bar-collapsed .ctrl-group-right {
+    display: none;
+}
+
+.player-control-bar.bar-collapsed .control-bar-toggle-handle svg {
+    transform: rotate(180deg);
 }

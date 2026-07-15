@@ -2,12 +2,15 @@ import os
 import sys
 import json
 import subprocess
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from flask import Flask, request, jsonify, send_from_directory, abort
 
-LIVE_PIPELINE_PROCESS = None
+LIVE_PIPELINE_THREAD: threading.Thread | None = None
+LIVE_PIPELINE_STOP_EVENT: threading.Event | None = None
 
 # Load environment variables
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -63,7 +66,7 @@ FRONTEND_DIR = REPO_ROOT / "frontend"
 app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
 
 # Register camera streaming blueprint
-from camera_stream import camera_bp, release_camera
+from camera_stream import camera_bp, get_raw_frame
 app.register_blueprint(camera_bp)
 
 # Ensure data directory exists
@@ -351,59 +354,55 @@ def serve_data_file(filename):
 
 @app.route("/api/live/start", methods=["POST"])
 def start_live_monitoring():
-    global LIVE_PIPELINE_PROCESS
+    global LIVE_PIPELINE_THREAD, LIVE_PIPELINE_STOP_EVENT
 
-    # Already running?
-    if LIVE_PIPELINE_PROCESS and LIVE_PIPELINE_PROCESS.poll() is None:
-        return jsonify({
-            "success": False,
-            "error": "Monitoring is already running."
-        })
+    if LIVE_PIPELINE_THREAD and LIVE_PIPELINE_THREAD.is_alive():
+        return jsonify({"success": False, "error": "Monitoring is already running."})
 
-    script_path = REPO_ROOT / "scripts" / "live_stream_pipeline.py"
-
-    # Release the browser preview capture so the pipeline subprocess can open the camera.
-    # The preview will restart automatically on the next /api/stream/<id> request.
     cam_raw = os.getenv("CAMERA_SOURCE", "0")
-    if str(cam_raw).isdigit():
-        release_camera(int(cam_raw))
+    cam_id = int(cam_raw) if str(cam_raw).isdigit() else 0
+
+    stop_event = threading.Event()
+    LIVE_PIPELINE_STOP_EVENT = stop_event
+
+    args = SimpleNamespace(
+        video_id="live_stream",
+        camera_name=os.getenv("CAMERA_NAME", "Camera-1"),
+    )
 
     try:
-        LIVE_PIPELINE_PROCESS = subprocess.Popen(
-            [
-                sys.executable,
-                str(script_path)
-            ],
-            cwd=REPO_ROOT
-        )
+        from live_stream_pipeline import start_stream_from_getter
 
+        t = threading.Thread(
+            target=start_stream_from_getter,
+            args=(args, lambda: get_raw_frame(cam_id), stop_event),
+            daemon=True,
+        )
+        LIVE_PIPELINE_THREAD = t
+        t.start()
         return jsonify({"success": True})
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/live/stop", methods=["POST"])
 def stop_live_monitoring():
-    global LIVE_PIPELINE_PROCESS
+    global LIVE_PIPELINE_THREAD, LIVE_PIPELINE_STOP_EVENT
 
     try:
-        if LIVE_PIPELINE_PROCESS and LIVE_PIPELINE_PROCESS.poll() is None:
-            LIVE_PIPELINE_PROCESS.terminate()
-            LIVE_PIPELINE_PROCESS.wait(timeout=5)
+        if LIVE_PIPELINE_STOP_EVENT:
+            LIVE_PIPELINE_STOP_EVENT.set()
+        if LIVE_PIPELINE_THREAD:
+            LIVE_PIPELINE_THREAD.join(timeout=6)
 
-        LIVE_PIPELINE_PROCESS = None
+        LIVE_PIPELINE_THREAD = None
+        LIVE_PIPELINE_STOP_EVENT = None
 
         return jsonify({"success": True})
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 

@@ -1058,7 +1058,7 @@ def build_normalized_document(
         normalized_incidents.append(
             build_incident(
                 index=position,
-                ppe_item=item,
+                ppe_items=[item],
                 start_seconds=incident["start_seconds"],
                 end_seconds=incident["end_seconds"],
                 status=incident["status"],

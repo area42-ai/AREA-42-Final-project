@@ -52,29 +52,29 @@ JSON object. Output ONLY the raw JSON object: no markdown fences, no reasoning.]
 You are given a plain-text safety summary describing a video. Analyze these PPE
 items only: {scope}.
 
-Produce one incident per PPE item per confirmed period during which that item
-was MISSING (the body area was visible and the item was not worn).
+Produce ONE incident per PERSON. Each incident must list ALL PPE items currently
+missing for that person together in the "violated_items" array. Do NOT create
+separate incidents per PPE item. If a person is missing a vest AND glasses, that
+is ONE incident with violated_items: ["safety_vest", "safety_glasses"].
 
 Rules:
 - Use only information explicitly present in the summary. Do not invent events.
 - Allowed status values: present, missing, unknown, not_applicable.
 - If visibility is not stated for an item, treat it as unknown - NOT missing.
-- Only emit an incident when an item is clearly missing.
-- For gloves specifically, only emit an incident if the summary explicitly
+- Only include an item in violated_items when it is clearly missing.
+- For gloves specifically, only include "gloves" if the summary explicitly
   says that at least one hand is visible while gloves are absent. No visible
-  hand means unknown, never a gloves incident.
+  hand means unknown, never a gloves violation.
 - Times are numeric seconds (floats). Convert mm:ss to seconds.
-- If the summary says the item was put back on, set end_seconds to that time.
+- start_seconds is when the FIRST violation for this person began.
+- If the person became fully compliant, set end_seconds to that time.
 - If absence was confirmed but never resolved, set end_seconds to null and, if
   possible, set minimum_confirmed_duration_seconds to the last confirmed second
   of absence minus the start.
 - Do not compute duration yourself. Do not decide notifications.
 - Each incident must include a "worker" field: a short identifying description
-  of that specific worker, copied from how they are described in the summary
-  (e.g. "yellow vest, brown pants"). Use the EXACT SAME wording for the same
-  worker across all of their incidents, so incidents belonging to one person
-  can be grouped later. If only one worker is described, still include this
-  field with their description.
+  of that specific worker (e.g. "yellow vest, brown pants"). Use the EXACT SAME
+  wording for the same worker if they appear in multiple time windows.
 
 Return exactly this JSON structure and nothing else:
 {{
@@ -82,18 +82,17 @@ Return exactly this JSON structure and nothing else:
   "incidents": [
     {{
       "worker": "yellow vest, brown pants",
-      "ppe_item": "hard_hat",
-      "status": "missing",
+      "violated_items": ["hard_hat", "safety_glasses"],
       "start_seconds": 13.0,
-      "end_seconds": 33.0,
+      "end_seconds": null,
       "minimum_confirmed_duration_seconds": null,
       "confidence": 0.9,
       "action_sequence": [
         {{
-          "event": "ppe_removed",
-          "ppe_item": "hard_hat",
+          "event": "ppe_missing",
+          "ppe_items": ["hard_hat", "safety_glasses"],
           "timestamp_seconds": 13.0,
-          "description": "Worker removes the hard hat."
+          "description": "Worker visible without hard hat and safety glasses."
         }}
       ]
     }}
