@@ -27,10 +27,9 @@ _camera_captures: dict[int, cv2.VideoCapture] = {}
 _camera_frames: dict[int, bytes | None] = {}
 _camera_threads: dict[int, threading.Thread] = {}
 
-# YOLO annotation state: last annotated frame and frame counter per camera
-_yolo_last_annotated: dict[int, bytes | None] = {}
-_yolo_counters: dict[int, int] = {}
-_YOLO_EVERY_N = 4  # run YOLO inference every N frames
+# Raw numpy frames shared with the YOLO annotation thread
+_camera_raw_frames: dict[int, "cv2.Mat | None"] = {}
+_yolo_threads: dict[int, threading.Thread] = {}
 
 MAX_CAMERA_PROBE = 5  # try indices 0..4 during enumeration
 
@@ -97,19 +96,7 @@ def _capture_loop(camera_id: int) -> None:
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
     _camera_captures[camera_id] = cap
-
-    try:
-        import sys
-        import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
-        from yolo_detector import annotate_frame as _yolo_annotate
-        _yolo_available = True
-    except Exception:
-        _yolo_available = False
-        _yolo_annotate = None
-
-    _yolo_counters[camera_id] = 0
-    _yolo_last_annotated[camera_id] = None
+    _camera_raw_frames[camera_id] = None
 
     while cap.isOpened():
         ok, frame = cap.read()
@@ -117,21 +104,39 @@ def _capture_loop(camera_id: int) -> None:
             time.sleep(0.05)
             continue
 
-        # Annotate every N-th frame with YOLO for the browser MJPEG stream
-        _yolo_counters[camera_id] = (_yolo_counters[camera_id] + 1) % _YOLO_EVERY_N
-        if _yolo_available and _yolo_counters[camera_id] == 0:
-            annotated = _yolo_annotate(frame)
-            _, jpeg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 75])
-            _yolo_last_annotated[camera_id] = jpeg.tobytes()
-        elif _yolo_last_annotated.get(camera_id) is None:
-            _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
-            _yolo_last_annotated[camera_id] = jpeg.tobytes()
+        _camera_raw_frames[camera_id] = frame.copy()
 
+        # Fallback JPEG until YOLO thread writes its first annotated frame
         with _camera_locks[camera_id]:
-            _camera_frames[camera_id] = _yolo_last_annotated[camera_id]
+            if _camera_frames[camera_id] is None:
+                _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                _camera_frames[camera_id] = jpeg.tobytes()
+
         time.sleep(0.03)  # ~30 fps cap
 
     cap.release()
+
+
+def _yolo_loop(camera_id: int) -> None:
+    """Separate daemon thread: runs YOLO on raw frames without blocking capture."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
+    try:
+        from yolo_detector import annotate_frame
+    except Exception:
+        return  # YOLO unavailable — silently exit, stream continues without boxes
+
+    while True:
+        frame = _camera_raw_frames.get(camera_id)
+        if frame is None:
+            time.sleep(0.05)
+            continue
+        annotated = annotate_frame(frame)
+        _, jpeg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 75])
+        with _camera_locks[camera_id]:
+            _camera_frames[camera_id] = jpeg.tobytes()
+        time.sleep(0.1)  # ~10 fps annotation rate is sufficient for demo
 
 
 def release_camera(camera_id: int) -> None:
@@ -147,7 +152,7 @@ def release_camera(camera_id: int) -> None:
 
 
 def _ensure_capture_thread(camera_id: int) -> None:
-    """Start a background capture thread for *camera_id* if not already running."""
+    """Start capture and YOLO threads for *camera_id* if not already running."""
     if camera_id in _camera_threads and _camera_threads[camera_id].is_alive():
         return
     _camera_locks[camera_id] = threading.Lock()
@@ -155,6 +160,9 @@ def _ensure_capture_thread(camera_id: int) -> None:
     t = threading.Thread(target=_capture_loop, args=(camera_id,), daemon=True)
     _camera_threads[camera_id] = t
     t.start()
+    y = threading.Thread(target=_yolo_loop, args=(camera_id,), daemon=True)
+    _yolo_threads[camera_id] = y
+    y.start()
 
 
 def _mjpeg_generator(camera_id: int) -> Generator[bytes, None, None]:

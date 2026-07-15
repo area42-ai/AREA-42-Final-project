@@ -65,10 +65,14 @@ Rules:
 - Only include an item in violated_items when it is clearly missing.
 - Times are numeric seconds (floats). Convert mm:ss to seconds.
 - start_seconds is when the FIRST violation for this person began.
-- If the person became fully compliant, set end_seconds to that time.
-- If absence was confirmed but never resolved, set end_seconds to null and, if
-  possible, set minimum_confirmed_duration_seconds to the last confirmed second
-  of absence minus the start.
+- CRITICAL: set end_seconds to null UNLESS you clearly see the person actively
+  putting on the missing item within THIS clip. Clips are 5–20 seconds — if the
+  violation is still present when the clip ends, end_seconds MUST be null.
+  Do NOT set end_seconds to the clip duration or any boundary timestamp.
+  Only set it when you observe compliance being restored within this clip.
+- If the absence was confirmed but the person did not become compliant within
+  this clip, set end_seconds to null and set minimum_confirmed_duration_seconds
+  to the last observed second of absence minus start_seconds.
 - Do not compute duration yourself. Do not decide notifications.
 - Each incident must include a "worker" field: a short identifying description
   of that specific worker (e.g. "yellow vest, brown pants"). Use the EXACT SAME

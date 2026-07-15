@@ -1113,6 +1113,10 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
+[data-theme="dark"] .view-title-bar {
+    background-color: var(--bg-card);
+}
+
 .view-title {
     font-size: 1.25rem;
     font-weight: 700;

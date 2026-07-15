@@ -219,8 +219,9 @@ const elements = {
     cameraSelectionBar: document.getElementById('camera-selection-bar'),
     selAllCameras: document.getElementById('sel-all-cameras'),
     camSelInfo: document.getElementById('cam-sel-info'),
-    btnStartStream: document.getElementById('btn-start-stream'),
-    btnPauseStream: document.getElementById('btn-pause-stream'),
+    btnToggleStream: document.getElementById('btn-toggle-stream'),
+    btnToggleStreamIcon: document.getElementById('btn-toggle-stream-icon'),
+    btnToggleStreamLabel: document.getElementById('btn-toggle-stream-label'),
     reqHelmet: document.getElementById('req-helmet'),
     reqVest: document.getElementById('req-vest'),
     reqGoggles: document.getElementById('req-goggles'),
@@ -535,8 +536,9 @@ function setupControlsListeners() {
         });
     });
 
-    elements.btnStartStream.addEventListener('click', startStream);
-    elements.btnPauseStream.addEventListener('click', stopStream);
+    elements.btnToggleStream.addEventListener('click', () => {
+        if (state.cameraStreaming) stopStream(); else startStream();
+    });
     elements.modalClose.addEventListener('click', closeModal);
 }
 
@@ -610,8 +612,11 @@ async function startStream() {
     state.cameraStreaming = true;
     state.isStreaming = true;
 
-    elements.btnStartStream.disabled = true;
-    elements.btnPauseStream.disabled = false;
+    // Switch button to "Stop" mode
+    elements.btnToggleStreamLabel.textContent = t('btn.stopMonitoring');
+    elements.btnToggleStreamIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+    elements.btnToggleStream.classList.remove('btn-orange');
+    elements.btnToggleStream.classList.add('btn-secondary');
 
     updateStatusText(t('status.active'), 'green');
     showToast(`${selectedCams.length} ${t('toast.camerasActive')}`, "success");
@@ -647,8 +652,11 @@ async function stopStream() {
     state.isStreaming = false;
     state.cameraStreaming = false;
 
-    elements.btnStartStream.disabled = false;
-    elements.btnPauseStream.disabled = true;
+    // Switch button back to "Start" mode
+    elements.btnToggleStreamLabel.textContent = t('btn.startMonitoring');
+    elements.btnToggleStreamIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    elements.btnToggleStream.classList.remove('btn-secondary');
+    elements.btnToggleStream.classList.add('btn-orange');
 
     const camCount = state.cameras.length;
     updateStatusText(`${camCount} ${t('status.ready')}`, 'green');
