@@ -526,6 +526,7 @@ function syncSettingsState() {
     state.settings.require_helmet = elements.reqHelmet.checked;
     state.settings.require_vest = elements.reqVest.checked;
     state.settings.require_goggles = elements.reqGoggles.checked;
+    state.settings.require_gloves = elements.reqGloves ? elements.reqGloves.checked : false;
 }
 
 function setupControlsListeners() {
