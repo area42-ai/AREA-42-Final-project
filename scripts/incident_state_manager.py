@@ -2,16 +2,15 @@
 
 Pipeline A (Nemotron -> Gemma -> incident_contract) still produces one
 self-contained, contract-valid document PER event segment, exactly as
-before -- nothing about Pipeline A's internals changes. This module is what
-turns a stream of independent per-segment documents into a single, coherent,
-continuously-updated incident timeline for the whole live stream: an open
-violation that spans a segment boundary is extended rather than reported as
-two disconnected incidents, and a violation that clears is closed out
-exactly once, in the correct place on the global timeline.
+before -- nothing about Pipeline A's internals changes. This module turns a
+stream of independent per-segment documents into a single, coherent,
+continuously-updated incident timeline for the whole live stream.
 
-All timestamps handled internally and in the persisted output are on the
-GLOBAL stream timeline (shifted by segment.start_stream_seconds), never
-segment-local.
+Key design: incidents are keyed by PERSON only. All PPE items missing for
+that person accumulate in violated_items (union across segments). A person
+still violating after escalation_timeout_seconds triggers a NEW escalated
+incident so the operator sees a fresh alert. Different people generate
+separate independent incidents.
 """
 
 from __future__ import annotations
@@ -36,7 +35,7 @@ from incident_contract import (
 
 @dataclass
 class _OpenIncident:
-    ppe_item: str
+    violated_items: set[str]
     person_id: Any
     start_seconds: float
     last_seen_seconds: float
@@ -53,21 +52,24 @@ class IncidentStateManager:
         self,
         video_id: str,
         timeline_path: str | Path,
-        continuity_gap_seconds: float = 4.0,
-        stale_timeout_seconds: float = 30.0,
+        continuity_gap_seconds: float = 120.0,
+        stale_timeout_seconds: float = 300.0,
+        escalation_timeout_seconds: float = 120.0,
     ) -> None:
         self.video_id = video_id
         self.timeline_path = Path(timeline_path)
         self.timeline_path.parent.mkdir(parents=True, exist_ok=True)
         self.continuity_gap_seconds = continuity_gap_seconds
         self.stale_timeout_seconds = stale_timeout_seconds
+        self.escalation_timeout_seconds = escalation_timeout_seconds
 
         self._lock = threading.Lock()
-        self._open: dict[tuple[Any, str], _OpenIncident] = {}
+        # Key = person_id (str/int) or "anonymous" when person_id is None.
+        self._open: dict[Any, _OpenIncident] = {}
         self._closed: list[dict[str, Any]] = []
         self._models_seen: list[str] = []
         self._analysis_scope: list[str] = []
-        self._last_key_to_id: dict[tuple[Any, str], str] = {}
+        self._last_key_to_id: dict[Any, str] = {}
 
     def open_incident_count(self) -> int:
         with self._lock:
@@ -78,15 +80,7 @@ class IncidentStateManager:
         incident_json_path: Path,
         segment: FinalizedSegment,
     ) -> tuple[dict[str, Any], set[str]]:
-        """Merge one segment's Pipeline A output into the running timeline.
-
-        Returns (merged_document, touched_incident_ids). Does NOT persist to
-        disk (call persist() for that) so callers can attach evidence first.
-        touched_incident_ids identifies which incidents in the rebuilt
-        document were actually confirmed by THIS segment, so the Evidence
-        Manager never attaches a keyframe from an unrelated segment to an
-        incident it didn't observe.
-        """
+        """Merge one segment's Pipeline A output into the running timeline."""
         segment_document = json.loads(incident_json_path.read_text(encoding="utf-8"))
         errors = validate_document(segment_document)
         if errors:
@@ -102,13 +96,14 @@ class IncidentStateManager:
             self._remember_models(segment_document.get("models", []))
             self._remember_scope(segment_document.get("analysis_scope", []))
 
-            touched_keys: set[tuple[Any, str]] = set()
+            touched_keys: set[Any] = set()
 
             for incident in segment_document.get("incidents", []):
                 shifted = _shift_incident(incident, offset)
-                key = (shifted["person_id"], shifted["violated_items"][0])
+                person_id = shifted["person_id"]
+                key = person_id if person_id is not None else "anonymous"
                 touched_keys.add(key)
-                self._merge_incident(key, shifted, segment_end_global)
+                self._merge_incident(key, person_id, shifted, segment_end_global)
 
             self._expire_stale(segment_end_global, exclude=touched_keys)
 
@@ -149,22 +144,42 @@ class IncidentStateManager:
 
     def _merge_incident(
         self,
-        key: tuple[Any, str],
+        key: Any,
+        person_id: Any,
         shifted: dict[str, Any],
         segment_end_global: float,
     ) -> None:
-        person_id, ppe_item = key
+        new_violated = set(shifted.get("violated_items", []))
         existing = self._open.get(key)
 
         if existing is not None:
             gap = shifted["start_seconds"] - existing.last_seen_seconds
             if gap > self.continuity_gap_seconds:
-                # Too large a gap to be the same continuous violation;
-                # close the stale one out and start fresh below.
+                # Gap too large — close stale incident, start fresh below.
                 self._close_open(key, end_seconds=None)
                 existing = None
 
         if existing is not None:
+            # Escalation: if the person has been violating too long, close and reopen.
+            elapsed = segment_end_global - existing.start_seconds
+            if elapsed > self.escalation_timeout_seconds:
+                saved_violated = set(existing.violated_items)
+                self._close_open(key, end_seconds=existing.last_seen_seconds)
+                # Reopen as escalation with accumulated violated_items.
+                self._open[key] = _OpenIncident(
+                    violated_items=saved_violated | new_violated,
+                    person_id=person_id,
+                    start_seconds=segment_end_global,
+                    last_seen_seconds=segment_end_global,
+                    minimum_confirmed_duration_seconds=None,
+                    confidence=shifted.get("confidence"),
+                    action_sequence=list(shifted.get("action_sequence", [])),
+                    evidence=list(shifted.get("evidence", [])),
+                )
+                return
+
+            # Normal merge: union of violated items, extend sequences.
+            existing.violated_items.update(new_violated)
             existing.action_sequence.extend(shifted.get("action_sequence", []))
             existing.evidence.extend(shifted.get("evidence", []))
             if existing.confidence is None:
@@ -181,7 +196,7 @@ class IncidentStateManager:
             self._closed.append(
                 _finalized_incident_dict(
                     person_id=person_id,
-                    ppe_item=ppe_item,
+                    violated_items=new_violated,
                     start_seconds=shifted["start_seconds"],
                     end_seconds=shifted["end_seconds"],
                     minimum_confirmed_duration_seconds=shifted.get(
@@ -194,7 +209,7 @@ class IncidentStateManager:
             )
         else:
             self._open[key] = _OpenIncident(
-                ppe_item=ppe_item,
+                violated_items=new_violated,
                 person_id=person_id,
                 start_seconds=shifted["start_seconds"],
                 last_seen_seconds=segment_end_global,
@@ -212,8 +227,6 @@ class IncidentStateManager:
         shifted: dict[str, Any],
         segment_end_global: float,
     ) -> None:
-        # An incident still unresolved at the end of another segment is, at
-        # minimum, confirmed missing through that segment's end.
         candidates = [segment_end_global - existing.start_seconds]
         if shifted.get("minimum_confirmed_duration_seconds") is not None:
             candidates.append(float(shifted["minimum_confirmed_duration_seconds"]))
@@ -222,14 +235,14 @@ class IncidentStateManager:
         existing.minimum_confirmed_duration_seconds = round(max(candidates), 3)
         existing.last_seen_seconds = max(existing.last_seen_seconds, segment_end_global)
 
-    def _close_open(self, key: tuple[Any, str], end_seconds: float | None) -> None:
+    def _close_open(self, key: Any, end_seconds: float | None) -> None:
         existing = self._open.pop(key, None)
         if existing is None:
             return
         self._closed.append(
             _finalized_incident_dict(
                 person_id=existing.person_id,
-                ppe_item=existing.ppe_item,
+                violated_items=existing.violated_items,
                 start_seconds=existing.start_seconds,
                 end_seconds=end_seconds,
                 minimum_confirmed_duration_seconds=existing.minimum_confirmed_duration_seconds,
@@ -239,9 +252,7 @@ class IncidentStateManager:
             )
         )
 
-    def _expire_stale(
-        self, now_global: float, exclude: set[tuple[Any, str]]
-    ) -> None:
+    def _expire_stale(self, now_global: float, exclude: set[Any]) -> None:
         stale_keys = [
             key
             for key, incident in self._open.items()
@@ -255,7 +266,7 @@ class IncidentStateManager:
         open_as_incidents = [
             _finalized_incident_dict(
                 person_id=incident.person_id,
-                ppe_item=incident.ppe_item,
+                violated_items=incident.violated_items,
                 start_seconds=incident.start_seconds,
                 end_seconds=None,
                 minimum_confirmed_duration_seconds=incident.minimum_confirmed_duration_seconds,
@@ -272,15 +283,16 @@ class IncidentStateManager:
         )
 
         built: list[dict[str, Any]] = []
-        key_to_id: dict[tuple[Any, str], str] = {}
+        key_to_id: dict[Any, str] = {}
         for position, incident in enumerate(all_incidents, start=1):
             incident_id = f"incident_{position:03d}"
-            key = (incident["person_id"], incident["violated_items"][0])
+            person_id = incident["person_id"]
+            key = person_id if person_id is not None else "anonymous"
             key_to_id[key] = incident_id
             built.append(
                 build_incident(
                     index=position,
-                    ppe_item=incident["violated_items"][0],
+                    ppe_items=incident["violated_items"],
                     start_seconds=incident["start_seconds"],
                     end_seconds=incident["end_seconds"],
                     status=(
@@ -348,7 +360,7 @@ def _shift_incident(incident: dict[str, Any], offset: float) -> dict[str, Any]:
 def _finalized_incident_dict(
     *,
     person_id: Any,
-    ppe_item: str,
+    violated_items: set[str] | list[str],
     start_seconds: float,
     end_seconds: float | None,
     minimum_confirmed_duration_seconds: float | None,
@@ -358,7 +370,7 @@ def _finalized_incident_dict(
 ) -> dict[str, Any]:
     return {
         "person_id": person_id,
-        "violated_items": [ppe_item],
+        "violated_items": sorted(violated_items),
         "start_seconds": start_seconds,
         "end_seconds": end_seconds,
         "minimum_confirmed_duration_seconds": minimum_confirmed_duration_seconds,

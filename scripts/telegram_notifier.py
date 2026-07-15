@@ -126,7 +126,7 @@ class TelegramNotifier:
         temporary.replace(self._state_path)
 
     def notify_if_needed(self, document: dict[str, Any]) -> bool:
-        """Send at most one grouped message for all transitions in document."""
+        """Send one message per incident transition (per person, not per PPE item)."""
         incidents = [i for i in document.get("incidents", []) if isinstance(i, dict)]
         document_id = str(document.get("video_id") or document.get("video") or "stream")
         now = self._clock()
@@ -136,85 +136,90 @@ class TelegramNotifier:
             state_before = copy.deepcopy(self._state)
             for position, incident in enumerate(incidents, start=1):
                 person = str(incident.get("person_id") or "worker")
-                for item in _incident_items(incident):
-                    start_marker = incident.get(
-                        "start_seconds", incident.get("start_time_seconds", position)
-                    )
-                    # Timeline managers may renumber incident_001/002 when an
-                    # earlier segment finishes late. Person + rule + immutable
-                    # event start remains a stable identity across rebuilds.
-                    state_key = (
-                        f"{self.camera_name}|{document_id}|{person}|{item}|{start_marker}"
-                    )
-                    rule_key = f"{self.camera_name}|{person}|{item}"
-                    current_open = _is_open(incident)
-                    tracked = self._state["incidents"].get(state_key)
+                items = _incident_items(incident)
+                start_marker = incident.get(
+                    "start_seconds", incident.get("start_time_seconds", position)
+                )
+                # Key per person + start_seconds — stable across timeline rebuilds.
+                state_key = f"{self.camera_name}|{document_id}|{person}|{start_marker}"
+                rule_key = f"{self.camera_name}|{person}"
+                current_open = _is_open(incident)
+                tracked = self._state["incidents"].get(state_key)
 
-                    if tracked is None:
-                        validation_id = str(uuid.uuid4())
-                        last_resolved = self._state["last_resolved_by_rule"].get(rule_key)
-                        if isinstance(last_resolved, dict):
-                            resolved_at = last_resolved.get("timestamp")
-                            prior_validation_id = last_resolved.get("validation_id")
-                        else:  # Backward-compatible with version-1 numeric state.
-                            resolved_at = last_resolved
-                            prior_validation_id = None
-                        recurring = bool(
-                            current_open
-                            and resolved_at is not None
-                            and now - float(resolved_at) <= self._recurring_seconds
-                        )
-                        if recurring and prior_validation_id:
-                            validation_id = str(prior_validation_id)
-                        tracked = {
-                            "validation_id": validation_id,
-                            "rule_key": rule_key,
-                            "item": item,
-                            "open": current_open,
-                            "last_seen": now,
-                        }
-                        self._state["incidents"][state_key] = tracked
-                        changes.append({
-                            "kind": ("recurring" if recurring else "first")
-                            if current_open
-                            else "resolved",
-                            "validation_id": validation_id,
-                            "item": item,
-                            "incident": incident,
-                        })
-                        if not current_open:
-                            self._state["last_resolved_by_rule"][rule_key] = {
-                                "timestamp": now,
-                                "validation_id": validation_id,
-                            }
-                        continue
-
-                    was_open = bool(tracked.get("open"))
-                    tracked["last_seen"] = now
-                    if was_open and not current_open:
-                        tracked["open"] = False
+                if tracked is None:
+                    validation_id = str(uuid.uuid4())
+                    # Check if recently resolved (same person, different violation window)
+                    last_resolved = self._state["last_resolved_by_rule"].get(rule_key)
+                    if isinstance(last_resolved, dict):
+                        resolved_at = last_resolved.get("timestamp")
+                        prior_validation_id = last_resolved.get("validation_id")
+                    else:
+                        resolved_at = last_resolved
+                        prior_validation_id = None
+                    recently_resolved = bool(
+                        current_open
+                        and resolved_at is not None
+                        and now - float(resolved_at) <= self._recurring_seconds
+                    )
+                    # Also check if there's an existing OPEN incident for same person
+                    # (escalation: state manager closed & reopened, so it's a new key
+                    # but the same continuous violation — treat as escalation)
+                    existing_open_for_rule = any(
+                        t.get("rule_key") == rule_key and t.get("open")
+                        for t in self._state["incidents"].values()
+                    )
+                    recurring = recently_resolved or (current_open and existing_open_for_rule)
+                    if recurring and prior_validation_id:
+                        validation_id = str(prior_validation_id)
+                    tracked = {
+                        "validation_id": validation_id,
+                        "rule_key": rule_key,
+                        "items": items,
+                        "open": current_open,
+                        "last_seen": now,
+                    }
+                    self._state["incidents"][state_key] = tracked
+                    changes.append({
+                        "kind": ("recurring" if recurring else "first")
+                        if current_open
+                        else "resolved",
+                        "validation_id": validation_id,
+                        "items": items,
+                        "incident": incident,
+                    })
+                    if not current_open:
                         self._state["last_resolved_by_rule"][rule_key] = {
                             "timestamp": now,
-                            "validation_id": tracked["validation_id"],
-                        }
-                        changes.append({
-                            "kind": "resolved",
-                            "validation_id": tracked["validation_id"],
-                            "item": item,
-                            "incident": incident,
-                        })
-                    elif not was_open and current_open:
-                        # Reopening inside the same lifecycle keeps its
-                        # Validation_ID, making yellow -> green -> orange
-                        # traceable with one reference.
-                        validation_id = tracked["validation_id"]
-                        tracked["open"] = True
-                        changes.append({
-                            "kind": "recurring",
                             "validation_id": validation_id,
-                            "item": item,
-                            "incident": incident,
-                        })
+                        }
+                    continue
+
+                was_open = bool(tracked.get("open"))
+                tracked["last_seen"] = now
+                # Update accumulated items (union — more items may appear over time).
+                new_items = list({*tracked.get("items", []), *items})
+                tracked["items"] = new_items
+
+                if was_open and not current_open:
+                    tracked["open"] = False
+                    self._state["last_resolved_by_rule"][rule_key] = {
+                        "timestamp": now,
+                        "validation_id": tracked["validation_id"],
+                    }
+                    changes.append({
+                        "kind": "resolved",
+                        "validation_id": tracked["validation_id"],
+                        "items": new_items,
+                        "incident": incident,
+                    })
+                elif not was_open and current_open:
+                    tracked["open"] = True
+                    changes.append({
+                        "kind": "recurring",
+                        "validation_id": tracked["validation_id"],
+                        "items": new_items,
+                        "incident": incident,
+                    })
 
             filtered = [change for change in changes if not self._is_muted(change)]
             self._save_state()
@@ -226,17 +231,17 @@ class TelegramNotifier:
             photo_path = _evidence_path([change["incident"] for change in filtered])
             sent = self._send(message, keyboard, photo_path)
             if not sent:
-                # A transient Telegram failure must not consume the transition;
-                # the next document update should retry the same notification.
                 self._state = state_before
                 self._save_state()
             return sent
 
     def _is_muted(self, change: dict[str, Any]) -> bool:
-        return (
-            change["validation_id"] in self._state["muted_validation_ids"]
-            or change["item"] in self._state["muted_violation_types"]
-        )
+        if change["validation_id"] in self._state["muted_validation_ids"]:
+            return True
+        items = change.get("items") or []
+        muted_types = self._state["muted_violation_types"]
+        # Mute only if ALL items in the incident are muted
+        return bool(items) and all(item in muted_types for item in items)
 
     def format_grouped_message(
         self, changes: list[dict[str, Any]], now: datetime | None = None
@@ -245,21 +250,24 @@ class TelegramNotifier:
         labels = {
             "first": "FIRST WARNING",
             "resolved": "VIOLATION RESOLVED",
-            "recurring": "RECURRING VIOLATION",
+            "recurring": "ESCALATION — STILL VIOLATING",
         }
         lines = [
-            "<b>WATCH OUT — PPE STATE NOTIFICATION</b>",
+            "<b>WATCH OUT — PPE SAFETY ALERT</b>",
             f"📷 <b>Camera:</b> {html.escape(self.camera_name)}",
-            f"🕒 <b>Date and Time:</b> {_now_text(now)}",
+            f"🕒 <b>Time:</b> {_now_text(now)}",
             "",
         ]
         for change in changes:
             kind = change["kind"]
-            item = _PPE_DISPLAY.get(change["item"], change["item"].replace("_", " ").title())
+            items = change.get("items") or []
+            item_labels = ", ".join(
+                _PPE_DISPLAY.get(i, i.replace("_", " ").title()) for i in items
+            ) or "PPE"
             lines.extend([
                 f"{icons[kind]} <b>{labels[kind]}</b>",
-                f"• Violation: {html.escape(item)}",
-                f"• Validation_ID: <code>{html.escape(change['validation_id'])}</code>",
+                f"• Missing: {html.escape(item_labels)}",
+                f"• ID: <code>{html.escape(change['validation_id'])}</code>",
                 "",
             ])
         return "\n".join(lines).rstrip()
