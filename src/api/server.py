@@ -2,15 +2,12 @@ import os
 import sys
 import json
 import subprocess
-import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from types import SimpleNamespace
-from flask import Flask, request, jsonify, send_from_directory, abort
+from flask import Flask, request, jsonify, send_from_directory
 
-LIVE_PIPELINE_THREAD: threading.Thread | None = None
-LIVE_PIPELINE_STOP_EVENT: threading.Event | None = None
+LIVE_PIPELINE_PROCESS = None
 
 # Load environment variables
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -66,7 +63,7 @@ FRONTEND_DIR = REPO_ROOT / "frontend"
 app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
 
 # Register camera streaming blueprint
-from camera_stream import camera_bp, get_raw_frame
+from camera_stream import camera_bp, release_camera
 app.register_blueprint(camera_bp)
 
 # Ensure data directory exists
@@ -272,27 +269,6 @@ def analyze_video():
         })
     
 
-def _resolve_evidence_url(inc: dict) -> str:
-    """Return a /data/... URL for the first existing evidence file in an incident, or ''."""
-    candidates = [inc.get("start_evidence_frame"), inc.get("last_seen_violation_frame")]
-    for ev in inc.get("evidence", []):
-        if isinstance(ev, dict):
-            candidates.append(ev.get("path") or ev.get("frame_path"))
-    for c in candidates:
-        if not c:
-            continue
-        p = Path(c)
-        if not p.is_absolute():
-            p = REPO_ROOT / p
-        if p.exists():
-            try:
-                rel = p.relative_to(REPO_ROOT / "data")
-                return "/data/" + str(rel).replace("\\", "/")
-            except ValueError:
-                pass
-    return ""
-
-
 @app.route("/api/alerts")
 def get_alerts():
     alerts = []
@@ -303,19 +279,16 @@ def get_alerts():
                 doc = json.loads(timeline_file.read_text(encoding="utf-8"))
                 mtime = datetime.fromtimestamp(timeline_file.stat().st_mtime).isoformat()
                 for inc in doc.get("incidents", []):
-                    missing_items = inc.get("violated_items") or (
-                        [inc["ppe_item"]] if inc.get("ppe_item") else []
-                    )
                     alerts.append({
                         "id": inc.get("incident_id", ""),
-                        "timestamp": inc.get("start_seconds") and mtime or mtime,
+                        "timestamp": mtime,
                         "description": (
-                            f"{', '.join(missing_items) or 'PPE'} violation detected. "
+                            f"{inc.get('ppe_item', 'PPE')} violation detected. "
                             f"{inc.get('worker_description', '')}".strip()
                         ),
-                        "image_path": _resolve_evidence_url(inc),
-                        "violators_details": [{"person_id": inc.get("person_id", 1), "missing": missing_items}],
-                        "confidence": inc.get("confidence", 0.9),
+                        "image_path": "",
+                        "violators_details": [{"person_id": 1, "missing": [inc.get("ppe_item", "")]}],
+                        "confidence": 0.9,
                     })
             except Exception:
                 continue
@@ -323,86 +296,61 @@ def get_alerts():
     return jsonify(alerts)
 
 
-@app.route("/api/recordings")
-def list_recordings():
-    segs_root = REPO_ROOT / "data" / "event_segments"
-    recordings = []
-    if segs_root.exists():
-        for f in sorted(segs_root.rglob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
-            try:
-                rel = str(f.relative_to(REPO_ROOT / "data")).replace("\\", "/")
-                recordings.append({
-                    "filename": f.name,
-                    "path": rel,
-                    "url": "/data/" + rel,
-                    "size": f.stat().st_size,
-                    "duration": 0,
-                    "timestamp": datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
-                })
-            except Exception:
-                continue
-    return jsonify(recordings)
-
-
-@app.route("/data/<path:filename>")
-def serve_data_file(filename):
-    safe = REPO_ROOT / "data" / filename
-    if not safe.resolve().is_relative_to((REPO_ROOT / "data").resolve()):
-        abort(403)
-    return send_from_directory(str(REPO_ROOT / "data"), filename)
-
-
 @app.route("/api/live/start", methods=["POST"])
 def start_live_monitoring():
-    global LIVE_PIPELINE_THREAD, LIVE_PIPELINE_STOP_EVENT
+    global LIVE_PIPELINE_PROCESS
 
-    if LIVE_PIPELINE_THREAD and LIVE_PIPELINE_THREAD.is_alive():
-        return jsonify({"success": False, "error": "Monitoring is already running."})
+    # Already running?
+    if LIVE_PIPELINE_PROCESS and LIVE_PIPELINE_PROCESS.poll() is None:
+        return jsonify({
+            "success": False,
+            "error": "Monitoring is already running."
+        })
 
+    script_path = REPO_ROOT / "scripts" / "live_stream_pipeline.py"
+
+    # Release the browser preview capture so the pipeline subprocess can open the camera.
+    # The preview will restart automatically on the next /api/stream/<id> request.
     cam_raw = os.getenv("CAMERA_SOURCE", "0")
-    cam_id = int(cam_raw) if str(cam_raw).isdigit() else 0
-
-    stop_event = threading.Event()
-    LIVE_PIPELINE_STOP_EVENT = stop_event
-
-    args = SimpleNamespace(
-        video_id="live_stream",
-        camera_name=os.getenv("CAMERA_NAME", "Camera-1"),
-    )
+    if str(cam_raw).isdigit():
+        release_camera(int(cam_raw))
 
     try:
-        from live_stream_pipeline import start_stream_from_getter
-
-        t = threading.Thread(
-            target=start_stream_from_getter,
-            args=(args, lambda: get_raw_frame(cam_id), stop_event),
-            daemon=True,
+        LIVE_PIPELINE_PROCESS = subprocess.Popen(
+            [
+                sys.executable,
+                str(script_path)
+            ],
+            cwd=REPO_ROOT
         )
-        LIVE_PIPELINE_THREAD = t
-        t.start()
+
         return jsonify({"success": True})
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 @app.route("/api/live/stop", methods=["POST"])
 def stop_live_monitoring():
-    global LIVE_PIPELINE_THREAD, LIVE_PIPELINE_STOP_EVENT
+    global LIVE_PIPELINE_PROCESS
 
     try:
-        if LIVE_PIPELINE_STOP_EVENT:
-            LIVE_PIPELINE_STOP_EVENT.set()
-        if LIVE_PIPELINE_THREAD:
-            LIVE_PIPELINE_THREAD.join(timeout=6)
+        if LIVE_PIPELINE_PROCESS and LIVE_PIPELINE_PROCESS.poll() is None:
+            LIVE_PIPELINE_PROCESS.terminate()
+            LIVE_PIPELINE_PROCESS.wait(timeout=5)
 
-        LIVE_PIPELINE_THREAD = None
-        LIVE_PIPELINE_STOP_EVENT = None
+        LIVE_PIPELINE_PROCESS = None
 
         return jsonify({"success": True})
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 

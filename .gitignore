@@ -239,15 +239,15 @@ datasets/
 *.tar.gz
 
 # --- Model weights & checkpoints ---
-/models/*
-!/models/README.md
-checkpoints/
-*.pt
-*.pth
-*.onnx
-*.engine
-*.ckpt
-*.weights
+# /models/*
+# !/models/README.md
+# checkpoints/
+# *.pt
+# *.pth
+# *.onnx
+# *.engine
+# *.ckpt
+# *.weights
 
 # --- YOLO training / inference runs ---
 runs/
@@ -262,9 +262,9 @@ uploads/
 *.mkv
 
 # --- Generated incident frames & clips (runtime outputs) ---
-/incidents/
-/outputs/
-src/incidents/output/
+# /incidents/
+# /outputs/
+# src/incidents/output/
 
 # --- Demo & test media (kept outside Git; share via approved external storage) ---
 #   data/raw/ and data/test/ are already covered by /data/* above;
